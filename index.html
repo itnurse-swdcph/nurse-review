@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบบันทึกทบทวน 12 กิจกรรม</title>
+    <link rel="icon" type="image/png" href="icon APP.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="appRoot"></div>
+    <div id="modalRoot"></div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite" aria-busy="true">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <h3 id="loadingTitle">กำลังโหลด</h3>
+        <p id="loadingMessage">กรุณารอสักครู่</p>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
