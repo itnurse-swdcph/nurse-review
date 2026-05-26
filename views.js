@@ -42,9 +42,10 @@ function renderTopbarLegacy({ config, bootstrap, route, activeUnit, fiscalYear }
           </div>
         </div>
         <div class="topbar__actions">
-          <label>
+          <label class="toolbar-select">
             <span class="sr-only">เลือกปีงบประมาณ</span>
-            <select class="select" data-action="change-fiscal-year">
+            <span class="toolbar-select__label">ปีงบประมาณ</span>
+            <select class="select select--toolbar" data-action="change-fiscal-year">
               ${years.map((year) => `<option value="${year}" ${Number(year) === Number(fiscalYear) ? "selected" : ""}>${fiscalYearLabel(year)}</option>`).join("")}
             </select>
           </label>
@@ -131,10 +132,6 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
                   <div class="data-strip__item">
                     <div class="stat-label">จำนวนหน่วยงานที่ตั้งค่า</div>
                     <div class="stat-value">${formatNumber((bootstrap.units || []).length)}</div>
-                  </div>
-                  <div class="data-strip__item">
-                    <div class="stat-label">โหมดระบบ</div>
-                    <div class="stat-value">GitHub Pages + GAS</div>
                   </div>
                 </div>
               </div>
@@ -278,10 +275,6 @@ function renderHomePageLegacy({ config, bootstrap, fiscalYear }) {
                   <div class="data-strip__item">
                     <div class="stat-label">จำนวนหน่วยงานที่ตั้งค่า</div>
                     <div class="stat-value">${formatNumber((bootstrap.units || []).length)}</div>
-                  </div>
-                  <div class="data-strip__item">
-                    <div class="stat-label">โหมดระบบ</div>
-                    <div class="stat-value">GitHub Pages + GAS</div>
                   </div>
                 </div>
               </div>
@@ -1338,13 +1331,79 @@ function renderPagination(pager, action) {
 }
 
 function renderStatCard(label, value, note) {
+  const theme = resolveStatCardTheme(label);
   return `
-    <div class="stats-band__item">
-      <div class="stat-label">${escapeHtml(label)}</div>
+    <div class="stats-band__item stats-band__item--${theme.tone}">
+      <div class="stat-card__head">
+        <div class="stat-label">${escapeHtml(label)}</div>
+        <span class="stat-card__icon" aria-hidden="true">${renderStatIcon(theme.icon)}</span>
+      </div>
       <div class="stat-value">${formatNumber(value || 0)}</div>
       <div class="stat-note">${escapeHtml(note)}</div>
     </div>
   `;
+}
+
+function resolveStatCardTheme(label) {
+  if (label.includes("ประเด็น")) {
+    return { tone: "amber", icon: "issue" };
+  }
+  if (label.includes("ตัวชี้วัด")) {
+    return { tone: "teal", icon: "indicator" };
+  }
+  if (label.includes("หน่วยงาน")) {
+    return { tone: "slate", icon: "unit" };
+  }
+  if (label.includes("กิจกรรม")) {
+    return { tone: "blue", icon: "progress" };
+  }
+  return { tone: "blue", icon: "records" };
+}
+
+function renderStatIcon(icon) {
+  switch (icon) {
+    case "indicator":
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 18V10" />
+          <path d="M12 18V6" />
+          <path d="M18 18v-4" />
+          <path d="M4 20h16" />
+        </svg>
+      `;
+    case "issue":
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8v5" />
+          <path d="M12 17h.01" />
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.72 3h16.92a2 2 0 0 0 1.72-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+        </svg>
+      `;
+    case "unit":
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 20V8l8-4 8 4v12" />
+          <path d="M9 20v-5h6v5" />
+          <path d="M9 10h.01" />
+          <path d="M15 10h.01" />
+        </svg>
+      `;
+    case "progress":
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.5 9 16l10-10" />
+          <path d="M4 12a8 8 0 1 1 2.34 5.66" />
+        </svg>
+      `;
+    default:
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16" />
+          <path d="M4 12h16" />
+          <path d="M4 18h10" />
+        </svg>
+      `;
+  }
 }
 
 function renderBarRow({ label, value, maxValue }) {
@@ -1358,11 +1417,15 @@ function renderBarRow({ label, value, maxValue }) {
   `;
 }
 
-function renderRecentRecordEntry(record) {
+function renderRecentRecordEntry(record, { showUnit = true } = {}) {
+  const metaParts = [formatThaiDate(record.reviewDate)];
+  if (showUnit) {
+    metaParts.unshift(record.unitName || "-");
+  }
   return `
     <div class="timeline__entry">
       <strong>${escapeHtml(record.activityLabel || ACTIVITY_MAP[record.activityId]?.shortTitle || "กิจกรรม")}</strong>
-      <div class="muted">${escapeHtml(record.unitName || "-")} | ${escapeHtml(formatThaiDate(record.reviewDate))}</div>
+      <div class="muted">${escapeHtml(metaParts.join(" | "))}</div>
       <div style="margin-top: 6px">${escapeHtml(record.reviewLeader || "-")}</div>
     </div>
   `;
@@ -1730,6 +1793,9 @@ function getActivityChooserItems() {
 
 function renderTopbar({ config, bootstrap, route, activeUnit, fiscalYear }) {
   const years = bootstrap?.availableFiscalYears || [];
+  const primaryAction = activeUnit
+    ? `<button class="button-secondary button-secondary--toolbar" data-action="open-activity-picker">เลือกกิจกรรม</button>`
+    : `<button class="button-secondary button-secondary--toolbar" data-action="open-unit-picker">เข้าสู่ระบบหน่วยงาน</button>`;
   return `
     <header class="topbar">
       <div class="topbar__inner">
@@ -1742,32 +1808,38 @@ function renderTopbar({ config, bootstrap, route, activeUnit, fiscalYear }) {
           </div>
         </div>
         <div class="topbar__actions">
-          <label>
+          <label class="toolbar-select">
             <span class="sr-only">เลือกปีงบประมาณ</span>
-            <select class="select" data-action="change-fiscal-year">
+            <span class="toolbar-select__label">ปีงบประมาณ</span>
+            <select class="select select--toolbar" data-action="change-fiscal-year">
               ${years.map((year) => `<option value="${year}" ${Number(year) === Number(fiscalYear) ? "selected" : ""}>${fiscalYearLabel(year)}</option>`).join("")}
             </select>
           </label>
-          ${activeUnit ? `<button class="button-secondary" data-action="open-activity-picker">เลือกกิจกรรม</button>` : ""}
-          ${activeUnit ? `<button class="button-secondary" data-action="open-unit-picker">สลับหน่วยงาน</button>` : ""}
-          <button class="button-ghost" data-action="${route.name === "home" ? "open-org-report" : "go-home"}">
-            ${route.name === "home" ? "รายงานภาพรวม" : "กลับหน้าแรก"}
-          </button>
+          <div class="toolbar-group">
+            ${primaryAction}
+            ${activeUnit ? `<button class="button-ghost button-ghost--toolbar" data-action="open-unit-picker">สลับหน่วยงาน</button>` : ""}
+            ${activeUnit ? `<button class="button-ghost button-ghost--toolbar" data-action="open-unit-report" data-unit="${escapeHtml(activeUnit)}">รายงานหน่วยงาน</button>` : ""}
+            <button class="button-ghost button-ghost--toolbar" data-action="${route.name === "home" ? "open-org-report" : "go-home"}">
+              ${route.name === "home" ? "รายงานภาพรวม" : "กลับหน้าแรก"}
+            </button>
+          </div>
         </div>
       </div>
     </header>
   `;
 }
-
 function renderSidebar({ unitName, route, fiscalYear, dashboard }) {
   const activityCounts = dashboard?.activityCounts || {};
   return `
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <img src="nurse-logo.png" alt="Nurse Logo" />
+        <div class="sidebar__brand-mark">
+          <img src="nurse-logo.png" alt="Nurse Logo" />
+        </div>
         <div>
           <p class="section-eyebrow">Unit Workspace</p>
-          <h2 class="sidebar__unit">${escapeHtml(unitName)}</h2>
+          <h2 class="sidebar__title">แดชบอร์ดหน่วยงาน</h2>
+          <p class="sidebar__copy">ภาพรวมการบันทึกและติดตามข้อมูล</p>
         </div>
       </div>
       <div class="sidebar__meta">
@@ -1810,26 +1882,22 @@ function renderSidebar({ unitName, route, fiscalYear, dashboard }) {
     </aside>
   `;
 }
-
 function renderUnitDashboardContent({ unitName, fiscalYear, dashboard }) {
   return `
-    <section class="hero">
-      <div class="hero__layout">
-        <div>
-          <p class="section-eyebrow">Unit Dashboard</p>
-          <h2 class="hero__title">${escapeHtml(unitName)}</h2>
-          <p class="hero__subtitle">ภาพรวมการบันทึกและติดตามของหน่วยงาน ${escapeHtml(fiscalYearLabel(fiscalYear))}</p>
-          <div class="hero__actions">
-            <button class="button" data-action="open-activity-picker">เลือกกิจกรรมที่ต้องการบันทึก</button>
-            <button class="button-secondary" data-action="open-unit-report" data-unit="${escapeHtml(unitName)}">รายงานหน่วยงาน</button>
-          </div>
+    <section class="hero hero--unit">
+      <div class="hero__content">
+        <p class="section-eyebrow">Unit Workspace</p>
+        <h2 class="hero__title">${escapeHtml(unitName)}</h2>
+        <p class="hero__subtitle">ภาพรวมการบันทึกและติดตามข้อมูล ${escapeHtml(fiscalYearLabel(fiscalYear))}</p>
+        <div class="hero__actions">
+          <button class="button button--hero" data-action="open-activity-picker">เริ่มบันทึกหรืออัปเดตกิจกรรม</button>
         </div>
-        <div class="stats-band">
-          ${renderStatCard("บันทึกรวม", dashboard?.summary?.totalRecords || 0, "กิจกรรมที่ 1-11")}
-          ${renderStatCard("กิจกรรมที่เริ่มแล้ว", dashboard?.summary?.activitiesStarted || 0, "จำนวนกิจกรรมที่มีข้อมูล")}
-          ${renderStatCard("ตัวชี้วัดที่ใช้งาน", dashboard?.summary?.totalIndicators || 0, "กิจกรรมที่ 12")}
-          ${renderStatCard("ประเด็นที่ต้องติดตาม", dashboard?.summary?.openIssues || 0, "Issue และ action plan")}
-        </div>
+      </div>
+      <div class="stats-band stats-band--kpi">
+        ${renderStatCard("บันทึกรวม", dashboard?.summary?.totalRecords || 0, "กิจกรรมที่ 1-11")}
+        ${renderStatCard("กิจกรรมที่เริ่มแล้ว", dashboard?.summary?.activitiesStarted || 0, "กิจกรรมที่มีข้อมูลแล้ว")}
+        ${renderStatCard("ตัวชี้วัดที่ใช้งาน", dashboard?.summary?.totalIndicators || 0, "กิจกรรมที่ 12")}
+        ${renderStatCard("ประเด็นที่ต้องติดตาม", dashboard?.summary?.openIssues || 0, "Issue และ action plan")}
       </div>
     </section>
 
@@ -1838,27 +1906,29 @@ function renderUnitDashboardContent({ unitName, fiscalYear, dashboard }) {
         <div class="panel__head">
           <div>
             <p class="section-eyebrow">Activity Overview</p>
-            <h3 class="section-title">เลือกกิจกรรมที่ต้องการบันทึก</h3>
+            <h3 class="section-title">12 กิจกรรมการพยาบาล</h3>
+            <p class="table-meta">เลือกกิจกรรมเพื่อเปิดบันทึก ดูสถานะ และติดตามความคืบหน้าได้จากรายการเดียว</p>
           </div>
           <div class="panel__actions">
             <button class="button-secondary" data-action="open-activity-picker">เลือกกิจกรรม</button>
           </div>
         </div>
-        <div class="panel__stack">
+        <div class="panel__stack activity-list">
           ${getActivityChooserItems()
             .map((activity) => {
               const count = dashboard?.activityCounts?.[activity.id] || 0;
               return `
-                <div class="metric-row">
-                  <div>
+                <article class="activity-card">
+                  <div class="activity-card__main">
                     <strong>${escapeHtml(activity.shortTitle)}</strong>
                     <div class="muted">${escapeHtml(activity.title)}</div>
                   </div>
-                  <div class="inline-actions">
-                    <span class="badge ${count ? "is-success" : ""}">${count ? "มีข้อมูล" : "ยังไม่เริ่ม"}</span>
-                    <button class="button-ghost" data-action="open-activity" data-unit="${escapeHtml(unitName)}" data-activity="${activity.id}">เปิด</button>
+                  <div class="activity-card__meta">
+                    <span class="activity-card__count">${formatNumber(count)} รายการ</span>
+                    <span class="badge ${count ? "is-success" : "is-pending"}">${count ? "มีข้อมูล" : "ยังไม่เริ่ม"}</span>
+                    <button class="button-ghost button-ghost--action" data-action="open-activity" data-unit="${escapeHtml(unitName)}" data-activity="${activity.id}">เปิด</button>
                   </div>
-                </div>
+                </article>
               `;
             })
             .join("")}
@@ -1870,16 +1940,16 @@ function renderUnitDashboardContent({ unitName, fiscalYear, dashboard }) {
           <div>
             <p class="section-eyebrow">Recent Review</p>
             <h3 class="section-title">กิจกรรมล่าสุด</h3>
+            <p class="table-meta">รายการทบทวนล่าสุดที่อัปเดตในปีงบประมาณนี้</p>
           </div>
         </div>
         <div class="timeline">
-          ${(dashboard?.recentRecords || []).slice(0, MAX_RECENT_ITEMS).map(renderRecentRecordEntry).join("") || renderEmptyState("ยังไม่มีข้อมูลทบทวนในปีงบประมาณนี้")}
+          ${(dashboard?.recentRecords || []).slice(0, MAX_RECENT_ITEMS).map((record) => renderRecentRecordEntry(record, { showUnit: false })).join("") || renderEmptyState("ยังไม่มีข้อมูลทบทวนในปีงบประมาณนี้")}
         </div>
       </section>
     </div>
   `;
 }
-
 export function renderActivityPickerModalV2({ unitName, activityCounts = {} }) {
   return `
     <div class="modal-overlay" data-close-overlay="false">
