@@ -303,13 +303,44 @@ a {
 
 .hero__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
-  gap: 24px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1.05fr) minmax(460px, 0.95fr);
+  gap: 28px;
+  align-items: center;
 }
 
-.hero--unit .hero__content {
-  max-width: 720px;
+.hero__content {
+  max-width: 760px;
+}
+
+.hero__content--overview {
+  max-width: 680px;
+}
+
+.hero__content--unit {
+  max-width: 620px;
+}
+
+.hero__summary {
+  display: grid;
+  gap: 16px;
+  align-self: stretch;
+}
+
+.hero__layout--overview {
+  min-height: 420px;
+}
+
+.hero__layout--unit {
+  min-height: 320px;
+  grid-template-columns: minmax(0, 0.98fr) minmax(420px, 0.92fr);
+}
+
+.hero__summary--overview {
+  align-content: center;
+}
+
+.hero__summary--unit {
+  align-content: center;
 }
 
 .hero,
@@ -323,9 +354,17 @@ a {
 
 .hero__title {
   color: #fff;
-  font-size: clamp(32px, 5vw, 44px);
+  font-size: clamp(32px, 4.6vw, 54px);
   line-height: 1.1;
   max-width: 16ch;
+}
+
+.hero__title--overview {
+  max-width: 11ch;
+}
+
+.hero__title--unit {
+  max-width: 12ch;
 }
 
 .hero__meta {
@@ -333,6 +372,11 @@ a {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+.hero__meta--hero {
+  margin-top: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .data-strip,
@@ -345,6 +389,14 @@ a {
 
 .stats-band {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stats-band--hero-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats-band--hero-grid-unit {
+  gap: 12px;
 }
 
 .stats-band__item,
@@ -369,6 +421,16 @@ a {
 
 .stats-band--kpi {
   margin-top: 26px;
+}
+
+.stats-band--hero-grid .stats-band__item {
+  min-height: 172px;
+}
+
+.hero__meta--hero .data-strip__item {
+  min-height: 132px;
+  display: grid;
+  align-content: start;
 }
 
 .stat-card__head {
@@ -430,6 +492,7 @@ a {
   margin-top: 8px;
   font-size: 13px;
   color: var(--text-soft);
+  line-height: 1.55;
 }
 
 .layout-grid {
@@ -1196,6 +1259,11 @@ tbody tr:hover {
   .field-grid,
   .year-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero__layout--overview,
+  .hero__layout--unit {
+    min-height: auto;
   }
 }
 
