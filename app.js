@@ -1557,7 +1557,7 @@
         payload: JSON.stringify(payload),
         transport: "postMessage",
         requestId,
-        origin: window.location.origin || "*",
+        origin: "*",
       };
 
       Object.entries(fields).forEach(([key, value]) => {
@@ -1577,6 +1577,9 @@
 
       const onMessage = (event) => {
         const packet = typeof event.data === "string" ? safeJsonParse(event.data) : event.data;
+        if (event.source !== iframe.contentWindow) {
+          return;
+        }
         if (!packet || packet.requestId !== requestId) {
           return;
         }
@@ -1591,7 +1594,7 @@
       timeoutId = window.setTimeout(() => {
         cleanup();
         reject(new Error("การเชื่อมต่อกับ Google Apps Script ใช้เวลานานเกินกำหนด"));
-      }, 45000);
+      }, 90000);
 
       window.addEventListener("message", onMessage);
       document.body.appendChild(iframe);
