@@ -1530,11 +1530,61 @@
   }
 
   async function apiGet(action, params = {}) {
-    return apiBridgeRequest(action, params);
+    return apiJsonpRequest(action, params);
   }
 
   async function apiPost(action, payload = {}) {
     return apiBridgeRequest(action, payload);
+  }
+
+  function apiJsonpRequest(action, params = {}) {
+    return new Promise((resolve, reject) => {
+      const callbackName = `__gas_jsonp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const script = document.createElement("script");
+      const url = new URL(apiBaseUrl);
+      let timeoutId = null;
+
+      url.searchParams.set("action", action);
+      url.searchParams.set("callback", callbackName);
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          url.searchParams.set(key, value);
+        }
+      });
+
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        script.remove();
+        try {
+          delete window[callbackName];
+        } catch (error) {
+          window[callbackName] = undefined;
+        }
+      };
+
+      window[callbackName] = (packet) => {
+        cleanup();
+        if (!packet || !packet.success) {
+          reject(new Error(packet?.error || "Unknown API error"));
+          return;
+        }
+        resolve(packet.data);
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("ไม่สามารถโหลดข้อมูลจาก Google Apps Script ได้"));
+      };
+
+      timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("การเชื่อมต่อกับ Google Apps Script ใช้เวลานานเกินกำหนด"));
+      }, 30000);
+
+      script.src = url.toString();
+      document.body.appendChild(script);
+    });
   }
 
   function apiBridgeRequest(action, payload = {}) {
@@ -1577,7 +1627,12 @@
 
       const onMessage = (event) => {
         const packet = typeof event.data === "string" ? safeJsonParse(event.data) : event.data;
-        if (event.source !== iframe.contentWindow) {
+        const eventOrigin = String(event.origin || "");
+        const trustedOrigin =
+          eventOrigin === "null" ||
+          eventOrigin.includes("script.google.com") ||
+          eventOrigin.includes("script.googleusercontent.com");
+        if (!trustedOrigin) {
           return;
         }
         if (!packet || packet.requestId !== requestId) {
