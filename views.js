@@ -107,24 +107,25 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
     content: `
       <section class="workspace workspace--home">
         <div>
-          <section class="hero">
-            <div class="hero__layout">
-              <div>
+          <section class="hero hero--overview">
+            <div class="hero__layout hero__layout--overview">
+              <div class="hero__content hero__content--overview">
                 <p class="section-eyebrow">Enterprise Nursing Review System</p>
-                <h2 class="hero__title">Dashboard ภาพรวมสำหรับการทบทวน 12 กิจกรรมการพยาบาล</h2>
+                <h2 class="hero__title hero__title--overview">Dashboard ภาพรวมสำหรับการทบทวน 12 กิจกรรมการพยาบาล</h2>
+                <p class="hero__subtitle">มุมมองภาพรวมสำหรับติดตามการบันทึก การเริ่มใช้งานของหน่วยงาน และประเด็นที่ต้องติดตามในปีงบประมาณปัจจุบัน</p>
                 <div class="hero__actions">
                   <button class="button button--hero" data-action="open-unit-picker">เข้าสู่ระบบหน่วยงาน</button>
                   <button class="button-secondary" data-action="open-org-report">พิมพ์รายงานภาพรวม</button>
                 </div>
               </div>
-              <div>
-                <div class="stats-band">
+              <div class="hero__summary hero__summary--overview">
+                <div class="stats-band stats-band--hero-grid">
                   ${renderStatCard("จำนวนการบันทึก", organization.summary.totalRecords, "ทุกรายการในปีงบประมาณปัจจุบัน")}
                   ${renderStatCard("หน่วยงานที่มีข้อมูล", organization.summary.unitsWithData, "หน่วยงานที่เริ่มใช้งานแล้ว")}
                   ${renderStatCard("ตัวชี้วัดที่ติดตาม", organization.summary.totalIndicators, "กิจกรรมที่ 12 ทุกหน่วยงาน")}
                   ${renderStatCard("ประเด็นที่ต้องติดตาม", organization.summary.openIssues, "ประเด็นปัญหาที่ยังต้องดำเนินการ")}
                 </div>
-                <div class="hero__meta">
+                <div class="hero__meta hero__meta--hero">
                   <div class="data-strip__item">
                     <div class="stat-label">ปีงบประมาณที่แสดง</div>
                     <div class="stat-value">${escapeHtml(fiscalYearLabel(fiscalYear))}</div>
@@ -228,7 +229,6 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
     `,
   });
 }
-
 function renderHomePageLegacy({ config, bootstrap, fiscalYear }) {
   const organization = bootstrap.organizationDashboard || {
     summary: {},
@@ -1885,19 +1885,23 @@ function renderSidebar({ unitName, route, fiscalYear, dashboard }) {
 function renderUnitDashboardContent({ unitName, fiscalYear, dashboard }) {
   return `
     <section class="hero hero--unit">
-      <div class="hero__content">
-        <p class="section-eyebrow">Unit Workspace</p>
-        <h2 class="hero__title">${escapeHtml(unitName)}</h2>
-        <p class="hero__subtitle">ภาพรวมการบันทึกและติดตามข้อมูล ${escapeHtml(fiscalYearLabel(fiscalYear))}</p>
-        <div class="hero__actions">
-          <button class="button button--hero" data-action="open-activity-picker">เริ่มบันทึกหรืออัปเดตกิจกรรม</button>
+      <div class="hero__layout hero__layout--unit">
+        <div class="hero__content hero__content--unit">
+          <p class="section-eyebrow">Unit Workspace</p>
+          <h2 class="hero__title hero__title--unit">${escapeHtml(unitName)}</h2>
+          <p class="hero__subtitle">ภาพรวมการบันทึกและติดตามข้อมูล ${escapeHtml(fiscalYearLabel(fiscalYear))}</p>
+          <div class="hero__actions">
+            <button class="button button--hero" data-action="open-activity-picker">เริ่มบันทึกหรืออัปเดตกิจกรรม</button>
+          </div>
         </div>
-      </div>
-      <div class="stats-band stats-band--kpi">
-        ${renderStatCard("บันทึกรวม", dashboard?.summary?.totalRecords || 0, "กิจกรรมที่ 1-11")}
-        ${renderStatCard("กิจกรรมที่เริ่มแล้ว", dashboard?.summary?.activitiesStarted || 0, "กิจกรรมที่มีข้อมูลแล้ว")}
-        ${renderStatCard("ตัวชี้วัดที่ใช้งาน", dashboard?.summary?.totalIndicators || 0, "กิจกรรมที่ 12")}
-        ${renderStatCard("ประเด็นที่ต้องติดตาม", dashboard?.summary?.openIssues || 0, "Issue และ action plan")}
+        <div class="hero__summary hero__summary--unit">
+          <div class="stats-band stats-band--hero-grid stats-band--hero-grid-unit">
+            ${renderStatCard("บันทึกรวม", dashboard?.summary?.totalRecords || 0, "กิจกรรมที่ 1-11")}
+            ${renderStatCard("กิจกรรมที่เริ่มแล้ว", dashboard?.summary?.activitiesStarted || 0, "กิจกรรมที่มีข้อมูลแล้ว")}
+            ${renderStatCard("ตัวชี้วัดที่ใช้งาน", dashboard?.summary?.totalIndicators || 0, "กิจกรรมที่ 12")}
+            ${renderStatCard("ประเด็นที่ต้องติดตาม", dashboard?.summary?.openIssues || 0, "Issue และ action plan")}
+          </div>
+        </div>
       </div>
     </section>
 
