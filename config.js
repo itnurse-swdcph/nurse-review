@@ -5,8 +5,9 @@ window.APP_CONFIG = {
   appName: "ระบบทบทวน 12 กิจกรรมการพยาบาล",
   hospitalName: "โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน",
   missionName: "ภารกิจด้านการพยาบาล",
-  footerCredit: "© 2026 Developed By Natnarinthorn",
+  footerCredit: "© 2026 IM Nurse System All rights reserved. | Developed By Natnarinthorn",
   requestTimeoutMs: 45000,
+  postRequestTimeoutMs: 120000,
   attachments: {
     maxFiles: 5,
     maxFileSizeMb: 10,
