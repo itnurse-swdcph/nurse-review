@@ -42,6 +42,13 @@ const loadingOverlay = document.getElementById("loadingOverlay");
 const loadingTitle = document.getElementById("loadingTitle");
 const loadingMessage = document.getElementById("loadingMessage");
 
+function createClientId(prefix = "id") {
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}_${globalThis.crypto.randomUUID()}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 class EnterpriseNurseApp {
   constructor(appConfig) {
     this.config = appConfig;
@@ -73,7 +80,7 @@ class EnterpriseNurseApp {
   }
 
   async bootstrap() {
-    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูลภาพรวมจาก Google Sheets");
+    this.showLoader("เธเธณเธฅเธฑเธเนเธซเธฅเธ”เธฃเธฐเธเธ", "เธเธณเธฅเธฑเธเน€เธเธทเนเธญเธกเธ•เนเธญเธเนเธญเธกเธนเธฅเธ เธฒเธเธฃเธงเธกเธเธฒเธ Google Sheets");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear || getFiscalYear() });
       this.store.bootstrap = bootstrap;
@@ -114,7 +121,7 @@ class EnterpriseNurseApp {
       return;
     }
 
-    this.showLoader("กำลังโหลด Dashboard", `กำลังเตรียมข้อมูลของ ${route.unitName}`);
+    this.showLoader("เธเธณเธฅเธฑเธเนเธซเธฅเธ” Dashboard", `เธเธณเธฅเธฑเธเน€เธ•เธฃเธตเธขเธกเธเนเธญเธกเธนเธฅเธเธญเธ ${route.unitName}`);
     try {
       const dashboard = await this.getUnitDashboard(route.unitName, this.store.selectedFiscalYear);
       let activityData = null;
@@ -163,9 +170,9 @@ class EnterpriseNurseApp {
       content: `
         <section class="workspace workspace--home">
           <div class="empty-state">
-            <h2>ไม่สามารถโหลดข้อมูลได้</h2>
+            <h2>เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเนเธ”เน</h2>
             <p>${escapeHtml(error.message || "Unknown error")}</p>
-            <button class="button" data-action="reload-page">ลองใหม่</button>
+            <button class="button" data-action="reload-page">เธฅเธญเธเนเธซเธกเน</button>
           </div>
         </section>
       `,
@@ -229,7 +236,6 @@ class EnterpriseNurseApp {
     return {
       ...result,
       searchValue: "",
-      sectionFilter: "all",
       valueMap,
       filteredCatalog: result.catalog || [],
     };
@@ -294,7 +300,7 @@ class EnterpriseNurseApp {
       const unitSelect = $("#unitPickerSelect", modalRoot);
       const unitName = String(unitSelect?.value || "").trim();
       if (!unitName) {
-        this.showToast("กรุณาเลือกหน่วยงานก่อนเข้าสู่ระบบ", "error");
+        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธซเธเนเธงเธขเธเธฒเธเธเนเธญเธเน€เธเนเธฒเธชเธนเนเธฃเธฐเธเธ", "error");
         return;
       }
       this.closeModal();
@@ -326,11 +332,11 @@ class EnterpriseNurseApp {
       return;
     }
     if (action === "open-org-report") {
-      this.openReport("__all__", "รายงานภาพรวมทั้งองค์กร");
+      this.openReport("__all__", "เธฃเธฒเธขเธเธฒเธเธ เธฒเธเธฃเธงเธกเธ—เธฑเนเธเธญเธเธเนเธเธฃ");
       return;
     }
     if (action === "open-unit-report") {
-      this.openReport(target.dataset.unit, `รายงานหน่วยงาน ${target.dataset.unit}`);
+      this.openReport(target.dataset.unit, `เธฃเธฒเธขเธเธฒเธเธซเธเนเธงเธขเธเธฒเธ ${target.dataset.unit}`);
       return;
     }
   }
@@ -349,9 +355,6 @@ class EnterpriseNurseApp {
       }
       return;
     }
-    if (target.dataset.action === "update-activity12-filter") {
-      this.updateActivity12Filters({ sectionFilter: target.value });
-    }
   }
 
   handleAppInput(event) {
@@ -366,7 +369,7 @@ class EnterpriseNurseApp {
   }
 
   async refreshHomeForYear() {
-    this.showLoader("กำลังเปลี่ยนปีงบประมาณ", "กำลังอัปเดต dashboard ภาพรวม");
+    this.showLoader("เธเธณเธฅเธฑเธเน€เธเธฅเธตเนเธขเธเธเธตเธเธเธเธฃเธฐเธกเธฒเธ“", "เธเธณเธฅเธฑเธเธญเธฑเธเน€เธ”เธ• dashboard เธ เธฒเธเธฃเธงเธก");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear });
       this.store.bootstrap = {
@@ -401,7 +404,7 @@ class EnterpriseNurseApp {
     if (action === "pick-activity") {
       const activityId = String(actionTarget.dataset.activity || "").trim();
       if (!activityId) {
-        this.showToast("กรุณาเลือกกิจกรรม", "error");
+        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธเธดเธเธเธฃเธฃเธก", "error");
         return;
       }
       this.closeModal();
@@ -416,7 +419,7 @@ class EnterpriseNurseApp {
       const unitSelect = $("#unitPickerSelect", modalRoot);
       const unitName = String(unitSelect?.value || "").trim();
       if (!unitName) {
-        this.showToast("กรุณาเลือกหน่วยงานก่อนเข้าสู่ระบบ", "error");
+        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธซเธเนเธงเธขเธเธฒเธเธเนเธญเธเน€เธเนเธฒเธชเธนเนเธฃเธฐเธเธ", "error");
         return;
       }
       this.closeModal();
@@ -556,7 +559,7 @@ class EnterpriseNurseApp {
     const data = await this.getActivityRecords(this.store.route.unitName, activityId, this.store.selectedFiscalYear);
     const record = (data.records || []).find((item) => item.recordId === recordId);
     if (!record) {
-      this.showToast("ไม่พบข้อมูลรายการที่เลือก", "error");
+      this.showToast("เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเน€เธฅเธทเธญเธ", "error");
       return;
     }
     if (action === "view-record") {
@@ -568,8 +571,8 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "ยืนยันการลบ",
-      message: "ต้องการลบรายการบันทึกนี้ใช่หรือไม่",
+      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธ",
+      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเธฃเธฒเธขเธเธฒเธฃเธเธฑเธเธ—เธถเธเธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
       confirmAction: "confirm-delete-record",
       payload: { recordId },
     });
@@ -636,7 +639,7 @@ class EnterpriseNurseApp {
     const maxFiles = Number(this.config.attachments.maxFiles || 5);
     const remaining = maxFiles - this.modalRetainedAttachments.length - this.modalFiles.length;
     if (remaining <= 0) {
-      this.showToast(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`, "error");
+      this.showToast(`เนเธเธเนเธเธฅเนเนเธ”เนเธชเธนเธเธชเธธเธ” ${maxFiles} เนเธเธฅเน`, "error");
       return;
     }
     const limitedFiles = incomingFiles.slice(0, remaining);
@@ -680,14 +683,14 @@ class EnterpriseNurseApp {
     dynamicRows.forEach((row, index) => {
       definition.rowFields.forEach((field) => {
         if (field.required && !row[field.name]) {
-          throw new Error(`กรุณากรอก "${field.label}" ในรายการย่อยที่ ${index + 1}`);
+          throw new Error(`เธเธฃเธธเธ“เธฒเธเธฃเธญเธ "${field.label}" เนเธเธฃเธฒเธขเธเธฒเธฃเธขเนเธญเธขเธ—เธตเน ${index + 1}`);
         }
       });
     });
 
     return {
-      recordId: form.dataset.recordId || "",
-      createdAt: form.dataset.createdAt || "",
+      recordId: form.dataset.recordId || createClientId("record"),
+      createdAt: form.dataset.createdAt || new Date().toISOString(),
       unitName: this.store.route.unitName,
       activityId: definition.id,
       activityLabel: definition.title,
@@ -703,8 +706,9 @@ class EnterpriseNurseApp {
   }
 
   async submitRecordForm(form) {
+    let payload;
     try {
-      const payload = this.serializeRecordForm(form);
+      payload = this.serializeRecordForm(form);
       if (!payload.reviewDate || !payload.reviewLeader) {
         throw new Error("กรุณากรอกวันที่ทบทวนและชื่อผู้นำการทบทวน");
       }
@@ -719,19 +723,22 @@ class EnterpriseNurseApp {
       await this.refreshAfterMutation();
       this.showToast("บันทึกข้อมูลเรียบร้อยแล้ว");
     } catch (error) {
+      if (payload && this.isRequestTimeoutError(error) && await this.reconcileSavedRecord(payload)) {
+        await this.finalizeRecoveredSave("บันทึกข้อมูลเรียบร้อยแล้ว");
+        return;
+      }
       this.showToast(error.message, "error");
     } finally {
       this.hideLoader();
     }
   }
-
   async confirmDeleteRecord(recordId) {
     try {
-      this.showLoader("กำลังลบข้อมูล", "กรุณารอสักครู่");
+      this.showLoader("เธเธณเธฅเธฑเธเธฅเธเธเนเธญเธกเธนเธฅ", "เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเน");
       await this.api.deleteActivityRecord({ recordId });
       this.closeModal();
       await this.refreshAfterMutation();
-      this.showToast("ลบรายการเรียบร้อยแล้ว");
+      this.showToast("เธฅเธเธฃเธฒเธขเธเธฒเธฃเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
     } catch (error) {
       this.showToast(error.message, "error");
     } finally {
@@ -758,8 +765,8 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "ยืนยันการลบเครื่องชี้วัด",
-      message: "ต้องการลบเครื่องชี้วัดนี้ใช่หรือไม่",
+      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธเน€เธเธฃเธทเนเธญเธเธเธตเนเธงเธฑเธ”",
+      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเน€เธเธฃเธทเนเธญเธเธเธตเนเธงเธฑเธ”เธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
       confirmAction: "confirm-delete-indicator",
       payload: { indicatorId },
     });
@@ -770,37 +777,44 @@ class EnterpriseNurseApp {
   }
 
   async submitIndicatorForm(form) {
+    let payload;
     try {
       const formData = new FormData(form);
       this.showLoader("กำลังบันทึกเครื่องชี้วัด", "กำลังอัปเดตรายการกิจกรรมที่ 12");
-      await this.api.saveIndicatorCatalog({
-        indicatorId: form.dataset.indicatorId || "",
-        createdAt: "",
+      payload = {
+        indicatorId: form.dataset.indicatorId || createClientId("indicator"),
+        createdAt: form.dataset.createdAt || new Date().toISOString(),
         unitName: this.store.route.unitName,
-        sectionKey: String(formData.get("sectionKey") || ""),
+        sectionKey: "",
         indicatorName: String(formData.get("indicatorName") || "").trim(),
         targetValue: String(formData.get("targetValue") || "").trim(),
         targetUnit: String(formData.get("targetUnit") || "").trim(),
         description: String(formData.get("description") || "").trim(),
         sortOrder: Number(formData.get("sortOrder") || 0),
-      });
+      };
+      await this.api.saveIndicatorCatalog(payload);
       this.closeModal();
       await this.refreshAfterMutation();
       this.showToast("บันทึกเครื่องชี้วัดเรียบร้อยแล้ว");
     } catch (error) {
+      if (payload && this.isRequestTimeoutError(error) && await this.reconcileSavedIndicator(payload.indicatorId)) {
+        await this.finalizeRecoveredSave("บันทึกเครื่องชี้วัดเรียบร้อยแล้ว");
+        return;
+      }
       this.showToast(error.message, "error");
     } finally {
       this.hideLoader();
     }
   }
-
   async submitIndicatorValuesForm(form) {
+    let indicatorId = "";
     try {
       const data = this.getCurrentActivityData();
       const indicator = data?.catalog?.find((item) => item.indicatorId === form.dataset.indicatorId);
       if (!indicator) {
         throw new Error("ไม่พบเครื่องชี้วัด");
       }
+      indicatorId = indicator.indicatorId;
       const formData = new FormData(form);
       const payload = createFiscalMonthsPayload(
         Object.fromEntries(ACTIVITY_12_MONTH_KEYS.map((key) => [key, String(formData.get(key) || "").trim()])),
@@ -814,7 +828,7 @@ class EnterpriseNurseApp {
         items: [
           {
             indicatorId: indicator.indicatorId,
-            sectionKey: indicator.sectionKey,
+            sectionKey: "",
             payload,
           },
         ],
@@ -823,12 +837,15 @@ class EnterpriseNurseApp {
       await this.refreshAfterMutation();
       this.showToast("บันทึกผลตัวชี้วัดเรียบร้อยแล้ว");
     } catch (error) {
+      if (indicatorId && this.isRequestTimeoutError(error) && await this.reconcileSavedIndicatorValues(indicatorId)) {
+        await this.finalizeRecoveredSave("บันทึกผลตัวชี้วัดเรียบร้อยแล้ว");
+        return;
+      }
       this.showToast(error.message, "error");
     } finally {
       this.hideLoader();
     }
   }
-
   handleIndicatorIssueAction(action, issueId) {
     const data = this.getCurrentActivityData();
     if (action === "new-indicator-issue") {
@@ -844,14 +861,15 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "ยืนยันการลบประเด็นติดตาม",
-      message: "ต้องการลบประเด็นนี้ใช่หรือไม่",
+      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธก",
+      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเธเธฃเธฐเน€เธ”เนเธเธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
       confirmAction: "confirm-delete-indicator-issue",
       payload: { issueId },
     });
   }
 
   async submitIndicatorIssueForm(form) {
+    let payload;
     try {
       const data = this.getCurrentActivityData();
       const formData = new FormData(form);
@@ -860,48 +878,39 @@ class EnterpriseNurseApp {
         throw new Error("กรุณาเลือกเครื่องชี้วัด");
       }
       this.showLoader("กำลังบันทึกประเด็นติดตาม", "กำลังอัปเดตข้อมูลกิจกรรมที่ 12");
-      await this.api.saveIndicatorIssue({
-        issueId: form.dataset.issueId || "",
+      payload = {
+        issueId: form.dataset.issueId || createClientId("issue"),
+        createdAt: form.dataset.createdAt || new Date().toISOString(),
         unitName: this.store.route.unitName,
         fiscalYear: this.store.selectedFiscalYear,
-        sectionKey: indicator.sectionKey,
+        sectionKey: "",
         indicatorId: indicator.indicatorId,
         indicatorName: indicator.indicatorName,
         problem: String(formData.get("problem") || "").trim(),
         actionPlan: String(formData.get("actionPlan") || "").trim(),
         followUp: String(formData.get("followUp") || "").trim(),
-      });
+      };
+      await this.api.saveIndicatorIssue(payload);
       this.closeModal();
       await this.refreshAfterMutation();
       this.showToast("บันทึกประเด็นติดตามเรียบร้อยแล้ว");
     } catch (error) {
+      if (payload && this.isRequestTimeoutError(error) && await this.reconcileSavedIndicatorIssue(payload.issueId)) {
+        await this.finalizeRecoveredSave("บันทึกประเด็นติดตามเรียบร้อยแล้ว");
+        return;
+      }
       this.showToast(error.message, "error");
     } finally {
       this.hideLoader();
     }
   }
-
-  async confirmDeleteIndicator(indicatorId) {
-    try {
-      this.showLoader("กำลังลบเครื่องชี้วัด", "กรุณารอสักครู่");
-      await this.api.deleteIndicatorCatalog({ indicatorId });
-      this.closeModal();
-      await this.refreshAfterMutation();
-      this.showToast("ลบเครื่องชี้วัดเรียบร้อยแล้ว");
-    } catch (error) {
-      this.showToast(error.message, "error");
-    } finally {
-      this.hideLoader();
-    }
-  }
-
   async confirmDeleteIndicatorIssue(issueId) {
     try {
-      this.showLoader("กำลังลบประเด็นติดตาม", "กรุณารอสักครู่");
+      this.showLoader("เธเธณเธฅเธฑเธเธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธก", "เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเน");
       await this.api.deleteIndicatorIssue({ issueId });
       this.closeModal();
       await this.refreshAfterMutation();
-      this.showToast("ลบประเด็นติดตามเรียบร้อยแล้ว");
+      this.showToast("เธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธกเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
     } catch (error) {
       this.showToast(error.message, "error");
     } finally {
@@ -955,21 +964,50 @@ class EnterpriseNurseApp {
       return;
     }
     data.searchValue = changes.searchValue ?? data.searchValue;
-    data.sectionFilter = changes.sectionFilter ?? data.sectionFilter;
     const searchValue = String(data.searchValue || "").trim().toLowerCase();
     data.filteredCatalog = (data.catalog || []).filter((indicator) => {
-      const matchesSection = data.sectionFilter === "all" || indicator.sectionKey === data.sectionFilter;
       const haystack = `${indicator.indicatorName} ${indicator.description} ${indicator.targetValue}`.toLowerCase();
       const matchesSearch = !searchValue || haystack.includes(searchValue);
-      return matchesSection && matchesSearch;
+      return matchesSearch;
     });
     this.setCurrentActivityData(data);
     this.renderUnit(this.store.route, getCache(this.store, `dashboard:${this.store.route.unitName}:${this.store.selectedFiscalYear}`), data);
   }
 
+  isRequestTimeoutError(error) {
+    return /timeout/i.test(String(error?.message || ""));
+  }
+
+  async reconcileSavedRecord(payload) {
+    const data = await this.getActivityRecords(payload.unitName, payload.activityId, payload.fiscalYear, true);
+    return (data?.records || []).some((record) => record.recordId === payload.recordId);
+  }
+
+  async reconcileSavedIndicator(indicatorId) {
+    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+    return (data?.catalog || []).some((item) => item.indicatorId === indicatorId);
+  }
+
+  async reconcileSavedIndicatorValues(indicatorId) {
+    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+    return Boolean(data?.valueMap?.[indicatorId] || (data?.values || []).find((item) => item.indicatorId === indicatorId));
+  }
+
+  async reconcileSavedIndicatorIssue(issueId) {
+    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+    return (data?.issues || []).some((item) => item.issueId === issueId);
+  }
+
+  async finalizeRecoveredSave(successMessage) {
+    this.clearDraftForModal(true);
+    this.closeModal();
+    await this.refreshAfterMutation();
+    this.showToast(successMessage);
+  }
+
   async openReport(scope, scopeLabel) {
     try {
-      this.showLoader("กำลังสร้างรายงาน", "กำลังประมวลผลข้อมูลสำหรับ printable report");
+      this.showLoader("เธเธณเธฅเธฑเธเธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธ", "เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅเธเนเธญเธกเธนเธฅเธชเธณเธซเธฃเธฑเธ printable report");
       const bundle = await this.api.getReportBundle(scope, this.store.selectedFiscalYear);
       modalRoot.innerHTML = renderReportModal({ bundle, scopeLabel });
     } catch (error) {
@@ -1025,7 +1063,7 @@ class EnterpriseNurseApp {
     const recordId = form.dataset.recordId || "";
     window.localStorage.removeItem(this.getDraftKey(activityId, recordId));
     if (!silent) {
-      this.showToast("ล้าง Draft เรียบร้อยแล้ว");
+      this.showToast("เธฅเนเธฒเธ Draft เน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
     }
   }
 
@@ -1046,3 +1084,6 @@ class EnterpriseNurseApp {
 
 const app = new EnterpriseNurseApp(config);
 document.addEventListener("DOMContentLoaded", () => app.init());
+
+
+
