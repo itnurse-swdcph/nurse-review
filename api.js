@@ -17,6 +17,7 @@ export class GasApiClient {
   constructor(config) {
     this.baseUrl = config.apiBaseUrl;
     this.timeoutMs = config.requestTimeoutMs || 45000;
+    this.postTimeoutMs = config.postRequestTimeoutMs || Math.max(this.timeoutMs, 120000);
   }
 
   async bootstrap(params = {}) {
@@ -72,7 +73,7 @@ export class GasApiClient {
   }
 
   async post(action, payload = {}) {
-    return withTimeout(this.bridgeRequest(action, payload), this.timeoutMs);
+    return withTimeout(this.bridgeRequest(action, payload), this.postTimeoutMs);
   }
 
   jsonpRequest(action, params = {}) {
