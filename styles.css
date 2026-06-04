@@ -1166,6 +1166,13 @@ tbody tr:hover {
 .report-table td {
   border: 1px solid #000;
   padding: 4px 5px;
+  vertical-align: top;
+}
+
+.report-row-detail + .report-row-detail {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #888;
 }
 
 .footer {
