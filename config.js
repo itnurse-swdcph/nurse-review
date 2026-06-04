@@ -7,7 +7,7 @@ window.APP_CONFIG = {
   missionName: "ภารกิจด้านการพยาบาล",
   footerCredit: "© 2026 พัฒนาโดย Natnarinthorn",
   requestTimeoutMs: 45000,
-  postRequestTimeoutMs: 120000,
+  postRequestTimeoutMs: 60000,
   attachments: {
     maxFiles: 5,
     maxFileSizeMb: 10,
