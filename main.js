@@ -437,12 +437,22 @@ class EnterpriseNurseApp {
       return;
     }
     if (action === "add-record-row") {
-      this.appendDynamicRow();
+      this.appendDynamicRow(actionTarget);
+      return;
+    }
+    if (action === "activity3-next-step") {
+      this.showActivity3Step(2);
+      return;
+    }
+    if (action === "activity3-prev-step") {
+      this.showActivity3Step(1);
       return;
     }
     if (action === "remove-record-row") {
       actionTarget.closest(".dynamic-row")?.remove();
-      this.renumberDynamicRows();
+      if (!ACTIVITY_MAP[this.store.route.activityId]?.modeField) {
+        this.renumberDynamicRows();
+      }
       this.draftSaver();
       return;
     }
@@ -513,6 +523,10 @@ class EnterpriseNurseApp {
     }
     if (target.dataset.rowTypeSelect !== undefined) {
       this.changeDynamicRowType(target);
+      return;
+    }
+    if (target.dataset.activity3Mode !== undefined) {
+      this.updateActivity3Mode(target.value);
     }
   }
 
@@ -595,6 +609,7 @@ class EnterpriseNurseApp {
       definition,
       record,
       draft,
+      relatedRecords: this.getCurrentActivityData()?.records || [],
     });
     this.refreshFilePreviewList();
   }
@@ -608,22 +623,26 @@ class EnterpriseNurseApp {
     this.draftSaver();
   }
 
-  appendDynamicRow() {
+  appendDynamicRow(actionTarget = null) {
     const definition = ACTIVITY_MAP[this.store.route.activityId];
-    const container = $("[data-dynamic-rows]", modalRoot);
+    const activePanel = actionTarget?.closest("[data-activity3-mode-panel]");
+    const container = activePanel
+      ? $("[data-dynamic-rows]", activePanel)
+      : $("[data-dynamic-rows]", modalRoot);
     if (!container || !definition) {
       return;
     }
+    const rowType = container.dataset.rowType || this.getActivity3Mode() || "";
     container.insertAdjacentHTML(
       "beforeend",
-      renderDynamicRow(definition, createEmptyRow(definition), container.children.length),
+      renderDynamicRow(definition, createEmptyRow(definition, rowType), container.children.length),
     );
     this.draftSaver();
   }
 
   renumberDynamicRows() {
     const definition = ACTIVITY_MAP[this.store.route.activityId];
-    const container = $("[data-dynamic-rows]", modalRoot);
+    const container = this.getActiveDynamicRowsContainer();
     if (!container || !definition) {
       return;
     }
@@ -635,6 +654,32 @@ class EnterpriseNurseApp {
       }, definition.rowTypes?.length ? { __rowType: rowType } : {});
     });
     container.innerHTML = rows.map((row, index) => renderDynamicRow(definition, row, index)).join("");
+  }
+
+  getActiveDynamicRowsContainer() {
+    const containers = $all("[data-dynamic-rows]", modalRoot);
+    return containers.find((container) => !container.closest(".hidden")) || containers[0];
+  }
+
+  showActivity3Step(step) {
+    $all("[data-activity3-step]", modalRoot).forEach((element) => {
+      element.classList.toggle("hidden", element.dataset.activity3Step !== String(step));
+    });
+    if (step === 2) {
+      this.updateActivity3Mode(this.getActivity3Mode());
+    }
+  }
+
+  updateActivity3Mode(mode) {
+    const selectedMode = mode || "incident";
+    $all("[data-activity3-mode-panel]", modalRoot).forEach((panel) => {
+      panel.classList.toggle("hidden", panel.dataset.activity3ModePanel !== selectedMode);
+    });
+    this.draftSaver();
+  }
+
+  getActivity3Mode() {
+    return String($("[data-activity3-mode]", modalRoot)?.value || "");
   }
 
   changeDynamicRowType(selectElement) {
@@ -688,15 +733,25 @@ class EnterpriseNurseApp {
       .map((value) => ({ name: String(value || "").trim() }))
       .filter((item) => item.name);
 
-    const meta = (definition.summaryFields || []).reduce((payload, field) => {
+    const meta = {};
+    if (definition.modeField) {
+      const value = String(formData.get(definition.modeField.name) || "").trim();
+      if (value) {
+        meta[definition.modeField.name] = value;
+      }
+    }
+    (definition.summaryFields || []).forEach((field) => {
       const value = String(formData.get(field.name) || "").trim();
       if (value) {
-        payload[field.name] = value;
+        meta[field.name] = value;
       }
-      return payload;
-    }, {});
+    });
 
-    const dynamicRows = $all(".dynamic-row", form).map((rowElement) => {
+    const selectedMode = meta[definition.modeField?.name] || "";
+    const rowSelector = definition.modeField && selectedMode
+      ? `[data-activity3-mode-panel="${selectedMode}"] .dynamic-row`
+      : ".dynamic-row";
+    const dynamicRows = $all(rowSelector, form).map((rowElement) => {
       const rowType = this.getRowTypeFromElement(definition, rowElement);
       return this.getRowFields(definition, rowType).reduce((row, field) => {
         const input = $(`[name$="__${field.name}"]`, rowElement);
@@ -731,6 +786,9 @@ class EnterpriseNurseApp {
   }
 
   getRowTypeFromElement(definition, rowElement) {
+    if (definition.modeField) {
+      return rowElement.closest("[data-row-type]")?.dataset.rowType || this.getActivity3Mode() || definition.modeField.options[0]?.value || "";
+    }
     return definition.rowTypes?.length
       ? String($("[data-row-type-select]", rowElement)?.value || definition.rowTypes[0].key || "")
       : "";
@@ -747,6 +805,14 @@ class EnterpriseNurseApp {
     return Object.entries(row).some(([key, value]) => key !== "__rowType" && Boolean(value));
   }
 
+  canSaveWithoutRows(payload) {
+    if (payload.activityId !== "3" || payload.meta?.recordMode !== "summary") {
+      return false;
+    }
+    return ["referCount", "referCause", "transferRequestCount", "transferRequestCause", "refusalCount", "refusalCause"]
+      .some((key) => Boolean(payload.meta?.[key]));
+  }
+
   async submitRecordForm(form) {
     let payload;
     try {
@@ -755,7 +821,7 @@ class EnterpriseNurseApp {
         const leaderLabel = ACTIVITY_MAP[payload.activityId]?.leaderLabel || "ผู้นำการทบทวน";
         throw new Error(`กรุณากรอกวันที่ทบทวนและ${leaderLabel}`);
       }
-      if (!payload.rows.length) {
+      if (!payload.rows.length && !this.canSaveWithoutRows(payload)) {
         throw new Error("กรุณาเพิ่มรายการย่อยอย่างน้อย 1 รายการ");
       }
       this.showLoader("กำลังบันทึกข้อมูล", "กำลังอัปโหลดไฟล์และบันทึกลงฐานข้อมูล");
