@@ -1,6 +1,10 @@
-function withTimeout(promise, ms) {
+function withTimeout(request, ms) {
+  const promise = request?.promise || request;
   return new Promise((resolve, reject) => {
-    const timeoutId = window.setTimeout(() => reject(new Error("Request timeout")), ms);
+    const timeoutId = window.setTimeout(() => {
+      request?.cleanup?.();
+      reject(new Error("Request timeout"));
+    }, ms);
     promise
       .then((value) => {
         window.clearTimeout(timeoutId);
@@ -114,7 +118,8 @@ export class GasApiClient {
   }
 
   bridgeRequest(action, payload = {}) {
-    return new Promise((resolve, reject) => {
+    let cleanup = () => {};
+    const promise = new Promise((resolve, reject) => {
       const iframeName = `gasBridge_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const iframe = document.createElement("iframe");
       const form = document.createElement("form");
@@ -122,7 +127,12 @@ export class GasApiClient {
       const actionInput = document.createElement("input");
       const transportInput = document.createElement("input");
 
-      const cleanup = () => {
+      let cleaned = false;
+      cleanup = () => {
+        if (cleaned) {
+          return;
+        }
+        cleaned = true;
         window.removeEventListener("message", handleMessage);
         iframe.remove();
         form.remove();
@@ -165,5 +175,6 @@ export class GasApiClient {
       window.addEventListener("message", handleMessage);
       form.submit();
     });
+    return { promise, cleanup };
   }
 }
