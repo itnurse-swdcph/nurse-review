@@ -523,7 +523,7 @@ function renderActivityRecordsContentLegacy({ unitName, fiscalYear, activityId, 
           <p class="table-meta">${escapeHtml(unitName)} | ${escapeHtml(fiscalYearLabel(fiscalYear))}</p>
         </div>
         <div class="panel__actions">
-          <button class="button" data-action="new-record" data-activity="${activityId}" data-unit="${escapeHtml(unitName)}">เพิ่มรายการ</button>
+          <button class="button" data-action="new-record" data-activity="${activityId}" data-unit="${escapeHtml(unitName)}">เพิ่มรายการ ${escapeHtml(definition.shortTitle)}: ${escapeHtml(definition.title)}</button>
           <button class="button-secondary" data-action="open-unit-report" data-unit="${escapeHtml(unitName)}">รายงานหน่วยงาน</button>
         </div>
       </div>
@@ -823,16 +823,24 @@ export function renderRecordFormModal({ config, unitName, fiscalYear, definition
   const participants = source.participants?.length ? source.participants : [{ name: "" }];
   const rows = source.rows?.length ? source.rows : [createEmptyRow(definition)];
   const summaryFields = definition.summaryFields || [];
+  const reviewDateLabel = definition.reviewDateLabel || "วันที่ทบทวน";
+  const leaderLabel = definition.leaderLabel || "ผู้นำการทบทวน";
+  const activityHeading = `${definition.shortTitle} ${definition.title}`;
   const body = `
     <form id="recordForm" class="modal-form" data-form-type="record" data-activity-id="${definition.id}" data-record-id="${escapeHtml(record?.recordId || "")}" data-created-at="${escapeHtml(record?.createdAt || "")}">
       ${draft ? `<div class="draft-banner">กู้คืนข้อมูลฉบับร่างล่าสุดแล้ว สามารถแก้ไขต่อและบันทึกจริงได้ทันที</div>` : ""}
+      <div class="search-panel">
+        <p class="section-eyebrow">แบบฟอร์มบันทึก</p>
+        <h4 class="section-title">${escapeHtml(activityHeading)}</h4>
+        ${definition.description ? `<p class="hint">${escapeHtml(definition.description)}</p>` : ""}
+      </div>
       <div class="form-grid">
         <label>
-          <span class="field-label">วันที่ทบทวน <span class="error-text">*</span></span>
+          <span class="field-label">${escapeHtml(reviewDateLabel)} <span class="error-text">*</span></span>
           <input class="input" type="date" name="reviewDate" value="${escapeHtml(toDateInput(source.reviewDate))}" required />
         </label>
         <label>
-          <span class="field-label">ชื่อผู้นำการทบทวน <span class="error-text">*</span></span>
+          <span class="field-label">${escapeHtml(leaderLabel)} <span class="error-text">*</span></span>
           <input class="input" type="text" name="reviewLeader" value="${escapeHtml(source.reviewLeader || "")}" required />
         </label>
       </div>
@@ -916,7 +924,7 @@ export function renderRecordFormModal({ config, unitName, fiscalYear, definition
     <button class="button" type="submit" form="recordForm">บันทึกข้อมูล</button>
   `;
   return renderModalShell({
-    title: record ? `แก้ไข ${definition.shortTitle}` : `เพิ่มรายการ ${definition.shortTitle}`,
+    title: record ? `แก้ไข ${definition.shortTitle}` : `เพิ่มรายการ ${activityHeading}`,
     subtitle: `${unitName} | ${fiscalYearLabel(fiscalYear)}`,
     body,
     footer,
@@ -926,15 +934,17 @@ export function renderRecordFormModal({ config, unitName, fiscalYear, definition
 
 export function renderRecordDetailModal({ definition, record }) {
   const rows = record.rows || [];
+  const reviewDateLabel = definition.reviewDateLabel || "วันที่ทบทวน";
+  const leaderLabel = definition.leaderLabel || "ผู้นำการทบทวน";
   const body = `
     <div class="modal-stack">
       <div class="data-strip">
         <div class="data-strip__item">
-          <div class="stat-label">วันที่ทบทวน</div>
+          <div class="stat-label">${escapeHtml(reviewDateLabel)}</div>
           <strong>${escapeHtml(formatThaiDate(record.reviewDate))}</strong>
         </div>
         <div class="data-strip__item">
-          <div class="stat-label">ผู้นำการทบทวน</div>
+          <div class="stat-label">${escapeHtml(leaderLabel)}</div>
           <strong>${escapeHtml(record.reviewLeader || "-")}</strong>
         </div>
         <div class="data-strip__item">
@@ -1201,28 +1211,46 @@ export function renderParticipantRow(participant = {}, index = 0) {
 }
 
 export function renderDynamicRow(definition, row = {}, index = 0) {
+  const rowType = getSelectedRowType(definition, row);
+  const rowFields = getRowFields(definition, rowType);
+  const rowTypeControl = definition.rowTypes?.length
+    ? `
+      <label>
+        <span class="field-label">รูปแบบการบันทึก</span>
+        <select class="select" name="row__${index}____rowType" data-row-type-select>
+          ${definition.rowTypes
+            .map((type) => `<option value="${escapeHtml(type.key)}" ${type.key === rowType ? "selected" : ""}>${escapeHtml(type.label)}</option>`)
+            .join("")}
+        </select>
+      </label>
+    `
+    : "";
   return `
     <div class="dynamic-row" data-dynamic-row="${index}">
       <div class="record-strip">
         <div>
           <strong>${escapeHtml(definition.rowLabel || "รายการย่อย")} ${index + 1}</strong>
-          <div class="muted">${escapeHtml(definition.shortTitle)}</div>
+          <div class="muted">${escapeHtml(getRowTypeLabel(definition, rowType) || definition.shortTitle)}</div>
         </div>
         <button class="button-ghost" type="button" data-action="remove-record-row">ลบรายการ</button>
       </div>
       <div class="form-grid" style="margin-top: 12px">
-        ${definition.rowFields.map((field) => renderFormField(field, row[field.name] ?? "", `row__${index}__${field.name}`)).join("")}
+        ${rowTypeControl}
+        ${rowFields.map((field) => renderFormField(field, row[field.name] ?? "", `row__${index}__${field.name}`)).join("")}
       </div>
     </div>
   `;
 }
 
 function renderRowPreview(definition, row = {}, index = 0) {
+  const rowType = getSelectedRowType(definition, row);
+  const rowFields = getRowFields(definition, rowType);
   return `
     <div class="dynamic-row">
       <strong>${escapeHtml(definition.rowLabel || "รายการย่อย")} ${index + 1}</strong>
+      ${definition.rowTypes?.length ? `<div class="muted">${escapeHtml(getRowTypeLabel(definition, rowType))}</div>` : ""}
       <div class="form-grid" style="margin-top: 12px">
-        ${definition.rowFields
+        ${rowFields
           .map(
             (field) => `
               <div class="year-grid__cell">
@@ -1238,10 +1266,27 @@ function renderRowPreview(definition, row = {}, index = 0) {
 }
 
 export function createEmptyRow(definition) {
-  return definition.rowFields.reduce((row, field) => {
+  const rowType = definition.rowTypes?.[0]?.key || "";
+  const baseRow = rowType ? { __rowType: rowType } : {};
+  return getRowFields(definition, rowType).reduce((row, field) => {
     row[field.name] = "";
     return row;
-  }, {});
+  }, baseRow);
+}
+
+function getSelectedRowType(definition, row = {}) {
+  return row.__rowType || definition.rowTypes?.[0]?.key || "";
+}
+
+function getRowTypeLabel(definition, rowType) {
+  return definition.rowTypes?.find((type) => type.key === rowType)?.label || "";
+}
+
+function getRowFields(definition, rowType = "") {
+  if (!definition.rowTypes?.length) {
+    return definition.rowFields || [];
+  }
+  return definition.rowTypes.find((type) => type.key === rowType)?.fields || definition.rowTypes[0].fields || [];
 }
 
 function renderFormField(field, value = "", overrideName = "") {
@@ -1437,16 +1482,18 @@ function renderReportSheet(unit, fiscalYear) {
 }
 
 function renderReportActivitySection(definition, records) {
+  const reviewDateLabel = definition.reviewDateLabel || "วันที่ทบทวน";
+  const leaderLabel = definition.leaderLabel || "ผู้นำการทบทวน";
   return `
     <section style="margin-top: 12px">
       <strong>${escapeHtml(definition.shortTitle)}: ${escapeHtml(definition.title)}</strong>
       <table class="report-table" style="margin-top: 6px">
         <thead>
           <tr>
-            <th>วันที่ทบทวน</th>
-            <th>ผู้นำการทบทวน</th>
+            <th>${escapeHtml(reviewDateLabel)}</th>
+            <th>${escapeHtml(leaderLabel)}</th>
             <th>ผู้ร่วมทบทวน</th>
-            <th>หัวข้อสำคัญ</th>
+            <th>รายละเอียดการทบทวน</th>
             <th>หมายเหตุ</th>
           </tr>
         </thead>
@@ -1454,18 +1501,12 @@ function renderReportActivitySection(definition, records) {
           ${records.length
             ? records
                 .map((record) => {
-                  const firstRow = record.rows?.[0] || {};
-                  const keyText = definition.rowFields
-                    .slice(0, 2)
-                    .map((field) => firstRow[field.name])
-                    .filter(Boolean)
-                    .join(" | ");
                   return `
                     <tr>
                       <td>${escapeHtml(formatThaiDate(record.reviewDate))}</td>
                       <td>${escapeHtml(record.reviewLeader || "-")}</td>
                       <td>${escapeHtml((record.participants || []).map((item) => item.name).join(", ") || "-")}</td>
-                      <td>${escapeHtml(keyText || "-")}</td>
+                      <td>${renderReportRecordDetails(definition, record)}</td>
                       <td>${escapeHtml(record.note || "-")}</td>
                     </tr>
                   `;
@@ -1476,6 +1517,36 @@ function renderReportActivitySection(definition, records) {
       </table>
     </section>
   `;
+}
+
+function renderReportRecordDetails(definition, record) {
+  const metaHtml = Object.entries(record.meta || {})
+    .map(([key, value]) => {
+      const field = definition.summaryFields?.find((item) => item.name === key);
+      return value ? `<div><strong>${escapeHtml(field?.label || key)}:</strong> ${escapeHtml(value)}</div>` : "";
+    })
+    .join("");
+  const rowsHtml = (record.rows || [])
+    .map((row, index) => {
+      const rowType = getSelectedRowType(definition, row);
+      const rowTypeLabel = getRowTypeLabel(definition, rowType);
+      const fields = getRowFields(definition, rowType);
+      const details = fields
+        .map((field) => {
+          const value = row[field.name];
+          return value ? `<div><strong>${escapeHtml(field.label)}:</strong> ${escapeHtml(value)}</div>` : "";
+        })
+        .filter(Boolean)
+        .join("");
+      return `
+        <div class="report-row-detail">
+          <div><strong>${escapeHtml(definition.rowLabel || "รายการ")} ${formatNumber(index + 1)}${rowTypeLabel ? ` - ${escapeHtml(rowTypeLabel)}` : ""}</strong></div>
+          ${details || "<div>-</div>"}
+        </div>
+      `;
+    })
+    .join("");
+  return `${metaHtml}${rowsHtml || "<div>-</div>"}`;
 }
 
 function renderReportActivity12Section(activity12, fiscalYear) {
@@ -1584,6 +1655,8 @@ function renderActivityRecordsContent({ unitName, fiscalYear, activityId, activi
   const searchValue = activityData.searchValue || "";
   const records = activityData.records || [];
   const pager = paginate(records, activityData.page || 1, PAGE_SIZE);
+  const reviewDateLabel = definition.reviewDateLabel || "วันที่ทบทวน";
+  const leaderLabel = definition.leaderLabel || "ผู้นำการทบทวน";
   return `
     <section class="panel">
       <div class="panel__head">
@@ -1623,8 +1696,8 @@ function renderActivityRecordsContent({ unitName, fiscalYear, activityId, activi
           <table>
             <thead>
               <tr>
-                <th>วันที่ทบทวน</th>
-                <th>ผู้นำการทบทวน</th>
+                <th>${escapeHtml(reviewDateLabel)}</th>
+                <th>${escapeHtml(leaderLabel)}</th>
                 <th>ผู้ร่วมทบทวน</th>
                 <th>จำนวนรายการย่อย</th>
                 <th>แนบไฟล์</th>
