@@ -11,6 +11,7 @@ import {
   getFiscalYear,
   parseHash,
   readFilesAsBase64,
+  wait,
 } from "./utils.js";
 import { GasApiClient } from "./api.js";
 import {
@@ -508,6 +509,10 @@ class EnterpriseNurseApp {
     const target = event.target;
     if (target.dataset.fileInput !== undefined) {
       this.appendFiles(target.files);
+      return;
+    }
+    if (target.dataset.rowTypeSelect !== undefined) {
+      this.changeDynamicRowType(target);
     }
   }
 
@@ -622,13 +627,32 @@ class EnterpriseNurseApp {
     if (!container || !definition) {
       return;
     }
-    const rows = $all(".dynamic-row", container).map((rowElement) =>
-      definition.rowFields.reduce((row, field) => {
+    const rows = $all(".dynamic-row", container).map((rowElement) => {
+      const rowType = this.getRowTypeFromElement(definition, rowElement);
+      return this.getRowFields(definition, rowType).reduce((row, field) => {
         row[field.name] = $(`[name$="__${field.name}"]`, rowElement)?.value || "";
         return row;
-      }, {}),
-    );
+      }, definition.rowTypes?.length ? { __rowType: rowType } : {});
+    });
     container.innerHTML = rows.map((row, index) => renderDynamicRow(definition, row, index)).join("");
+  }
+
+  changeDynamicRowType(selectElement) {
+    const definition = ACTIVITY_MAP[this.store.route.activityId];
+    const rowElement = selectElement.closest(".dynamic-row");
+    const container = $("[data-dynamic-rows]", modalRoot);
+    if (!definition || !rowElement || !container) {
+      return;
+    }
+    const index = Number(rowElement.dataset.dynamicRow || 0);
+    const rowType = String(selectElement.value || "");
+    const nextRow = this.getRowFields(definition, rowType).reduce((row, field) => {
+      row[field.name] = "";
+      return row;
+    }, { __rowType: rowType });
+    rowElement.outerHTML = renderDynamicRow(definition, nextRow, index);
+    this.renumberDynamicRows();
+    this.draftSaver();
   }
 
   appendFiles(files) {
@@ -673,15 +697,16 @@ class EnterpriseNurseApp {
     }, {});
 
     const dynamicRows = $all(".dynamic-row", form).map((rowElement) => {
-      return definition.rowFields.reduce((row, field) => {
+      const rowType = this.getRowTypeFromElement(definition, rowElement);
+      return this.getRowFields(definition, rowType).reduce((row, field) => {
         const input = $(`[name$="__${field.name}"]`, rowElement);
         row[field.name] = input?.value?.trim?.() ?? String(input?.value || "").trim();
         return row;
-      }, {});
+      }, definition.rowTypes?.length ? { __rowType: rowType } : {});
     });
 
     dynamicRows.forEach((row, index) => {
-      definition.rowFields.forEach((field) => {
+      this.getRowFields(definition, row.__rowType).forEach((field) => {
         if (field.required && !row[field.name]) {
           throw new Error(`กรุณากรอก "${field.label}" ในรายการย่อยที่ ${index + 1}`);
         }
@@ -699,10 +724,27 @@ class EnterpriseNurseApp {
       reviewLeader: String(formData.get("reviewLeader") || "").trim(),
       participants,
       meta,
-      rows: dynamicRows.filter((row) => Object.values(row).some(Boolean)),
+      rows: dynamicRows.filter((row) => this.hasMeaningfulRowValue(row)),
       note: String(formData.get("note") || "").trim(),
       retainedAttachments: this.modalRetainedAttachments,
     };
+  }
+
+  getRowTypeFromElement(definition, rowElement) {
+    return definition.rowTypes?.length
+      ? String($("[data-row-type-select]", rowElement)?.value || definition.rowTypes[0].key || "")
+      : "";
+  }
+
+  getRowFields(definition, rowType = "") {
+    if (!definition.rowTypes?.length) {
+      return definition.rowFields || [];
+    }
+    return definition.rowTypes.find((type) => type.key === rowType)?.fields || definition.rowTypes[0].fields || [];
+  }
+
+  hasMeaningfulRowValue(row) {
+    return Object.entries(row).some(([key, value]) => key !== "__rowType" && Boolean(value));
   }
 
   async submitRecordForm(form) {
@@ -710,7 +752,8 @@ class EnterpriseNurseApp {
     try {
       payload = this.serializeRecordForm(form);
       if (!payload.reviewDate || !payload.reviewLeader) {
-        throw new Error("กรุณากรอกวันที่ทบทวนและชื่อผู้นำการทบทวน");
+        const leaderLabel = ACTIVITY_MAP[payload.activityId]?.leaderLabel || "ผู้นำการทบทวน";
+        throw new Error(`กรุณากรอกวันที่ทบทวนและ${leaderLabel}`);
       }
       if (!payload.rows.length) {
         throw new Error("กรุณาเพิ่มรายการย่อยอย่างน้อย 1 รายการ");
@@ -979,23 +1022,43 @@ class EnterpriseNurseApp {
   }
 
   async reconcileSavedRecord(payload) {
-    const data = await this.getActivityRecords(payload.unitName, payload.activityId, payload.fiscalYear, true);
-    return (data?.records || []).some((record) => record.recordId === payload.recordId);
+    return this.retryReconcile(async () => {
+      const data = await this.getActivityRecords(payload.unitName, payload.activityId, payload.fiscalYear, true);
+      return (data?.records || []).some((record) => record.recordId === payload.recordId);
+    });
   }
 
   async reconcileSavedIndicator(indicatorId) {
-    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
-    return (data?.catalog || []).some((item) => item.indicatorId === indicatorId);
+    return this.retryReconcile(async () => {
+      const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+      return (data?.catalog || []).some((item) => item.indicatorId === indicatorId);
+    });
   }
 
   async reconcileSavedIndicatorValues(indicatorId) {
-    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
-    return Boolean(data?.valueMap?.[indicatorId] || (data?.values || []).find((item) => item.indicatorId === indicatorId));
+    return this.retryReconcile(async () => {
+      const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+      return Boolean(data?.valueMap?.[indicatorId] || (data?.values || []).find((item) => item.indicatorId === indicatorId));
+    });
   }
 
   async reconcileSavedIndicatorIssue(issueId) {
-    const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
-    return (data?.issues || []).some((item) => item.issueId === issueId);
+    return this.retryReconcile(async () => {
+      const data = await this.getActivity12(this.store.route.unitName, this.store.selectedFiscalYear, true);
+      return (data?.issues || []).some((item) => item.issueId === issueId);
+    });
+  }
+
+  async retryReconcile(checkSaved) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt > 0) {
+        await wait(1500);
+      }
+      if (await checkSaved()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async finalizeRecoveredSave(successMessage) {
