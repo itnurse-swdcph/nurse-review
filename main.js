@@ -80,7 +80,7 @@ class EnterpriseNurseApp {
   }
 
   async bootstrap() {
-    this.showLoader("เธเธณเธฅเธฑเธเนเธซเธฅเธ”เธฃเธฐเธเธ", "เธเธณเธฅเธฑเธเน€เธเธทเนเธญเธกเธ•เนเธญเธเนเธญเธกเธนเธฅเธ เธฒเธเธฃเธงเธกเธเธฒเธ Google Sheets");
+    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูลภาพรวมจาก Google Sheets");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear || getFiscalYear() });
       this.store.bootstrap = bootstrap;
@@ -121,7 +121,7 @@ class EnterpriseNurseApp {
       return;
     }
 
-    this.showLoader("เธเธณเธฅเธฑเธเนเธซเธฅเธ” Dashboard", `เธเธณเธฅเธฑเธเน€เธ•เธฃเธตเธขเธกเธเนเธญเธกเธนเธฅเธเธญเธ ${route.unitName}`);
+    this.showLoader("กำลังโหลด Dashboard", `กำลังเตรียมข้อมูลของ ${route.unitName}`);
     try {
       const dashboard = await this.getUnitDashboard(route.unitName, this.store.selectedFiscalYear);
       let activityData = null;
@@ -170,9 +170,9 @@ class EnterpriseNurseApp {
       content: `
         <section class="workspace workspace--home">
           <div class="empty-state">
-            <h2>เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเนเธ”เน</h2>
+            <h2>ไม่สามารถโหลดข้อมูลได้</h2>
             <p>${escapeHtml(error.message || "Unknown error")}</p>
-            <button class="button" data-action="reload-page">เธฅเธญเธเนเธซเธกเน</button>
+            <button class="button" data-action="reload-page">ลองใหม่</button>
           </div>
         </section>
       `,
@@ -300,7 +300,7 @@ class EnterpriseNurseApp {
       const unitSelect = $("#unitPickerSelect", modalRoot);
       const unitName = String(unitSelect?.value || "").trim();
       if (!unitName) {
-        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธซเธเนเธงเธขเธเธฒเธเธเนเธญเธเน€เธเนเธฒเธชเธนเนเธฃเธฐเธเธ", "error");
+        this.showToast("กรุณาเลือกหน่วยงานก่อนเข้าสู่ระบบ", "error");
         return;
       }
       this.closeModal();
@@ -332,11 +332,11 @@ class EnterpriseNurseApp {
       return;
     }
     if (action === "open-org-report") {
-      this.openReport("__all__", "เธฃเธฒเธขเธเธฒเธเธ เธฒเธเธฃเธงเธกเธ—เธฑเนเธเธญเธเธเนเธเธฃ");
+      this.openReport("__all__", "รายงานภาพรวมทั้งองค์กร");
       return;
     }
     if (action === "open-unit-report") {
-      this.openReport(target.dataset.unit, `เธฃเธฒเธขเธเธฒเธเธซเธเนเธงเธขเธเธฒเธ ${target.dataset.unit}`);
+      this.openReport(target.dataset.unit, `รายงานหน่วยงาน ${target.dataset.unit}`);
       return;
     }
   }
@@ -369,7 +369,7 @@ class EnterpriseNurseApp {
   }
 
   async refreshHomeForYear() {
-    this.showLoader("เธเธณเธฅเธฑเธเน€เธเธฅเธตเนเธขเธเธเธตเธเธเธเธฃเธฐเธกเธฒเธ“", "เธเธณเธฅเธฑเธเธญเธฑเธเน€เธ”เธ• dashboard เธ เธฒเธเธฃเธงเธก");
+    this.showLoader("กำลังเปลี่ยนปีงบประมาณ", "กำลังอัปเดตแดชบอร์ดภาพรวม");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear });
       this.store.bootstrap = {
@@ -404,7 +404,7 @@ class EnterpriseNurseApp {
     if (action === "pick-activity") {
       const activityId = String(actionTarget.dataset.activity || "").trim();
       if (!activityId) {
-        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธเธดเธเธเธฃเธฃเธก", "error");
+        this.showToast("กรุณาเลือกกิจกรรม", "error");
         return;
       }
       this.closeModal();
@@ -419,7 +419,7 @@ class EnterpriseNurseApp {
       const unitSelect = $("#unitPickerSelect", modalRoot);
       const unitName = String(unitSelect?.value || "").trim();
       if (!unitName) {
-        this.showToast("เธเธฃเธธเธ“เธฒเน€เธฅเธทเธญเธเธซเธเนเธงเธขเธเธฒเธเธเนเธญเธเน€เธเนเธฒเธชเธนเนเธฃเธฐเธเธ", "error");
+        this.showToast("กรุณาเลือกหน่วยงานก่อนเข้าสู่ระบบ", "error");
         return;
       }
       this.closeModal();
@@ -559,7 +559,7 @@ class EnterpriseNurseApp {
     const data = await this.getActivityRecords(this.store.route.unitName, activityId, this.store.selectedFiscalYear);
     const record = (data.records || []).find((item) => item.recordId === recordId);
     if (!record) {
-      this.showToast("เนเธกเนเธเธเธเนเธญเธกเธนเธฅเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเน€เธฅเธทเธญเธ", "error");
+      this.showToast("ไม่พบข้อมูลรายการที่เลือก", "error");
       return;
     }
     if (action === "view-record") {
@@ -571,8 +571,8 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธ",
-      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเธฃเธฒเธขเธเธฒเธฃเธเธฑเธเธ—เธถเธเธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
+      title: "ยืนยันการลบรายการ",
+      message: "ต้องการลบรายการบันทึกนี้ใช่หรือไม่",
       confirmAction: "confirm-delete-record",
       payload: { recordId },
     });
@@ -639,7 +639,7 @@ class EnterpriseNurseApp {
     const maxFiles = Number(this.config.attachments.maxFiles || 5);
     const remaining = maxFiles - this.modalRetainedAttachments.length - this.modalFiles.length;
     if (remaining <= 0) {
-      this.showToast(`เนเธเธเนเธเธฅเนเนเธ”เนเธชเธนเธเธชเธธเธ” ${maxFiles} เนเธเธฅเน`, "error");
+      this.showToast(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`, "error");
       return;
     }
     const limitedFiles = incomingFiles.slice(0, remaining);
@@ -683,7 +683,7 @@ class EnterpriseNurseApp {
     dynamicRows.forEach((row, index) => {
       definition.rowFields.forEach((field) => {
         if (field.required && !row[field.name]) {
-          throw new Error(`เธเธฃเธธเธ“เธฒเธเธฃเธญเธ "${field.label}" เนเธเธฃเธฒเธขเธเธฒเธฃเธขเนเธญเธขเธ—เธตเน ${index + 1}`);
+          throw new Error(`กรุณากรอก "${field.label}" ในรายการย่อยที่ ${index + 1}`);
         }
       });
     });
@@ -734,11 +734,11 @@ class EnterpriseNurseApp {
   }
   async confirmDeleteRecord(recordId) {
     try {
-      this.showLoader("เธเธณเธฅเธฑเธเธฅเธเธเนเธญเธกเธนเธฅ", "เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเน");
+    this.showLoader("กำลังลบข้อมูล", "กรุณารอสักครู่");
       await this.api.deleteActivityRecord({ recordId });
       this.closeModal();
       await this.refreshAfterMutation();
-      this.showToast("เธฅเธเธฃเธฒเธขเธเธฒเธฃเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
+      this.showToast("ลบรายการเรียบร้อยแล้ว");
     } catch (error) {
       this.showToast(error.message, "error");
     } finally {
@@ -765,8 +765,8 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธเน€เธเธฃเธทเนเธญเธเธเธตเนเธงเธฑเธ”",
-      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเน€เธเธฃเธทเนเธญเธเธเธตเนเธงเธฑเธ”เธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
+      title: "ยืนยันการลบเครื่องชี้วัด",
+      message: "ต้องการลบเครื่องชี้วัดนี้ใช่หรือไม่",
       confirmAction: "confirm-delete-indicator",
       payload: { indicatorId },
     });
@@ -861,8 +861,8 @@ class EnterpriseNurseApp {
       return;
     }
     modalRoot.innerHTML = renderConfirmModal({
-      title: "เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธก",
-      message: "เธ•เนเธญเธเธเธฒเธฃเธฅเธเธเธฃเธฐเน€เธ”เนเธเธเธตเนเนเธเนเธซเธฃเธทเธญเนเธกเน",
+      title: "ยืนยันการลบประเด็นติดตาม",
+      message: "ต้องการลบประเด็นนี้ใช่หรือไม่",
       confirmAction: "confirm-delete-indicator-issue",
       payload: { issueId },
     });
@@ -906,11 +906,11 @@ class EnterpriseNurseApp {
   }
   async confirmDeleteIndicatorIssue(issueId) {
     try {
-      this.showLoader("เธเธณเธฅเธฑเธเธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธก", "เธเธฃเธธเธ“เธฒเธฃเธญเธชเธฑเธเธเธฃเธนเน");
+      this.showLoader("กำลังลบประเด็นติดตาม", "กรุณารอสักครู่");
       await this.api.deleteIndicatorIssue({ issueId });
       this.closeModal();
       await this.refreshAfterMutation();
-      this.showToast("เธฅเธเธเธฃเธฐเน€เธ”เนเธเธ•เธดเธ”เธ•เธฒเธกเน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
+      this.showToast("ลบประเด็นติดตามเรียบร้อยแล้ว");
     } catch (error) {
       this.showToast(error.message, "error");
     } finally {
@@ -1007,7 +1007,7 @@ class EnterpriseNurseApp {
 
   async openReport(scope, scopeLabel) {
     try {
-      this.showLoader("เธเธณเธฅเธฑเธเธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธ", "เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅเธเนเธญเธกเธนเธฅเธชเธณเธซเธฃเธฑเธ printable report");
+      this.showLoader("กำลังสร้างรายงาน", "กำลังประมวลผลข้อมูลสำหรับ printable report");
       const bundle = await this.api.getReportBundle(scope, this.store.selectedFiscalYear);
       modalRoot.innerHTML = renderReportModal({ bundle, scopeLabel });
     } catch (error) {
@@ -1063,7 +1063,7 @@ class EnterpriseNurseApp {
     const recordId = form.dataset.recordId || "";
     window.localStorage.removeItem(this.getDraftKey(activityId, recordId));
     if (!silent) {
-      this.showToast("เธฅเนเธฒเธ Draft เน€เธฃเธตเธขเธเธฃเนเธญเธขเนเธฅเนเธง");
+      this.showToast("ล้าง Draft เรียบร้อยแล้ว");
     }
   }
 
