@@ -182,7 +182,7 @@ export const ACTIVITY_DEFINITIONS = [
     rowLabel: "หัวข้อการทบทวน",
     summaryFields: [
       { name: "sampleCount", label: "จำนวนแฟ้ม", type: "number" },
-      { name: "deadCount", label: "Dead", type: "number" },
+      { name: "deadCount", label: "เสียชีวิต", type: "number" },
       { name: "homeCount", label: "กลับบ้าน", type: "number" },
       { name: "refusalCount", label: "ไม่สมัครใจอยู่ต่อ", type: "number" },
     ],
