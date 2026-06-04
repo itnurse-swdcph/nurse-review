@@ -5,7 +5,7 @@ window.APP_CONFIG = {
   appName: "ระบบบันทึกการทบทวน 12 กิจกรรม",
   hospitalName: "โรงพยาบาลสมเด็จพระยุพราชสว่างแดนดิน",
   missionName: "ภารกิจด้านการพยาบาล",
-  footerCredit: "© 2026 Developed By Natnarinthorn",
+  footerCredit: "© 2026 พัฒนาโดย Natnarinthorn",
   requestTimeoutMs: 45000,
   postRequestTimeoutMs: 120000,
   attachments: {
