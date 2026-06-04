@@ -80,7 +80,7 @@ class EnterpriseNurseApp {
   }
 
   async bootstrap() {
-    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูลภาพรวมจาก Google Sheets");
+    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูลภาพรวมจาก Google ชีต");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear || getFiscalYear() });
       this.store.bootstrap = bootstrap;
@@ -121,7 +121,7 @@ class EnterpriseNurseApp {
       return;
     }
 
-    this.showLoader("กำลังโหลด Dashboard", `กำลังเตรียมข้อมูลของ ${route.unitName}`);
+    this.showLoader("กำลังโหลดแดชบอร์ด", `กำลังเตรียมข้อมูลของ ${route.unitName}`);
     try {
       const dashboard = await this.getUnitDashboard(route.unitName, this.store.selectedFiscalYear);
       let activityData = null;
@@ -1007,7 +1007,7 @@ class EnterpriseNurseApp {
 
   async openReport(scope, scopeLabel) {
     try {
-      this.showLoader("กำลังสร้างรายงาน", "กำลังประมวลผลข้อมูลสำหรับ printable report");
+      this.showLoader("กำลังสร้างรายงาน", "กำลังประมวลผลข้อมูลสำหรับรายงานสำหรับพิมพ์");
       const bundle = await this.api.getReportBundle(scope, this.store.selectedFiscalYear);
       modalRoot.innerHTML = renderReportModal({ bundle, scopeLabel });
     } catch (error) {
