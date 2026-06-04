@@ -80,7 +80,7 @@ class EnterpriseNurseApp {
   }
 
   async bootstrap() {
-    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูลภาพรวมจาก Google ชีต");
+    this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูล");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear || getFiscalYear() });
       this.store.bootstrap = bootstrap;
