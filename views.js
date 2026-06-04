@@ -36,7 +36,6 @@ function renderTopbarLegacy({ config, bootstrap, route, activeUnit, fiscalYear }
         <div class="brand">
           <img class="brand__logo" src="nurse-logo.png" alt="โลโก้พยาบาล" />
           <div>
-            <div class="brand__eyebrow">แพลตฟอร์มสุขภาพดิจิทัล</div>
             <h1 class="brand__title">${escapeHtml(config.appName)}</h1>
             <p class="brand__subtitle">${escapeHtml(config.hospitalName)} | ${escapeHtml(config.missionName)}</p>
           </div>
@@ -112,7 +111,7 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
               <div class="hero__content hero__content--overview">
                 <p class="section-eyebrow">ระบบบันทึกการทบทวนทางคลินิก</p>
                 <h2 class="hero__title hero__title--overview">แดชบอร์ดภาพรวมระบบบันทึกการทบทวน 12 กิจกรรม</h2>
-                <p class="hero__subtitle">ระบบนี้ใช้สำหรับบันทึกการทบทวนทางคลินิกตามหัวข้อกิจกรรม เพื่อการติดตามและสรุปผลรายหน่วยงาน ไม่ใช่การทำกิจกรรมการพยาบาล</p>
+                <p class="hero__subtitle">บันทึกและสรุปผลการทบทวนรายหน่วยงาน</p>
                 <div class="hero__actions">
                   <button class="button button--hero" data-action="open-unit-picker">เข้าสู่ระบบหน่วยงาน</button>
                   <button class="button-secondary" data-action="open-org-report">พิมพ์รายงานภาพรวม</button>
@@ -251,9 +250,7 @@ function renderHomePageLegacy({ config, bootstrap, fiscalYear }) {
               <div>
                 <p class="section-eyebrow">ระบบบันทึกการทบทวนทางคลินิก</p>
                 <h2 class="hero__title">แดชบอร์ดภาพรวมระบบบันทึกการทบทวน 12 กิจกรรม</h2>
-                <p class="hero__subtitle">
-                  ระบบนี้ใช้สำหรับบันทึกการทบทวนทางคลินิกตามหัวข้อกิจกรรม เพื่อการติดตามและสรุปผลรายหน่วยงาน ไม่ใช่การทำกิจกรรมการพยาบาล
-                </p>
+                <p class="hero__subtitle">บันทึกและสรุปผลการทบทวนรายหน่วยงาน</p>
                 <div class="hero__actions">
                   <button class="button" data-action="open-unit-picker">ทำการบันทึก</button>
                   <button class="button-secondary" data-action="open-org-report">พิมพ์รายงานภาพรวม</button>
@@ -1766,7 +1763,6 @@ function renderTopbar({ config, bootstrap, route, activeUnit, fiscalYear }) {
         <div class="brand">
           <img class="brand__logo" src="nurse-logo.png" alt="โลโก้พยาบาล" />
           <div>
-            <div class="brand__eyebrow">แพลตฟอร์มสุขภาพดิจิทัล</div>
             <h1 class="brand__title">${escapeHtml(config.appName)}</h1>
             <p class="brand__subtitle">${escapeHtml(config.hospitalName)} | ${escapeHtml(config.missionName)}</p>
           </div>
