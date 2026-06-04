@@ -818,7 +818,10 @@ function renderUnitPickerModalLegacy(units) {
   return renderModalShell({ title: "เลือกหน่วยงาน", subtitle: "หน้าต่างสำหรับเริ่มการบันทึก", body, size: "lg" });
 }
 
-export function renderRecordFormModal({ config, unitName, fiscalYear, definition, record, draft }) {
+export function renderRecordFormModal({ config, unitName, fiscalYear, definition, record, draft, relatedRecords = [] }) {
+  if (definition.id === "3") {
+    return renderActivity3RecordFormModal({ config, unitName, fiscalYear, definition, record, draft, relatedRecords });
+  }
   const source = draft || record || {};
   const participants = source.participants?.length ? source.participants : [{ name: "" }];
   const rows = source.rows?.length ? source.rows : [createEmptyRow(definition)];
@@ -880,7 +883,6 @@ export function renderRecordFormModal({ config, unitName, fiscalYear, definition
             <h4 class="section-title">${escapeHtml(definition.rowLabel || "รายการบันทึก")}</h4>
             <p class="muted">รองรับ dynamic row และเก็บข้อมูลตามหัวข้อกิจกรรม</p>
           </div>
-          <button class="button-ghost" type="button" data-action="add-record-row">เพิ่มรายการย่อย</button>
         </div>
         <div class="dynamic-rows" data-dynamic-rows>
           ${rows.map((row, index) => renderDynamicRow(definition, row, index)).join("")}
@@ -914,6 +916,170 @@ export function renderRecordFormModal({ config, unitName, fiscalYear, definition
         </div>
         <div class="file-preview-list" data-file-preview-list>
           ${renderExistingAttachments(source.attachments || [])}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="button-ghost" type="button" data-action="add-record-row">เพิ่มรายการย่อย</button>
+      </div>
+    </form>
+  `;
+  const footer = `
+    <button class="button-ghost" type="button" data-action="clear-record-draft">ล้าง Draft</button>
+    <button class="button-secondary" type="button" data-action="close-modal">ยกเลิก</button>
+    <button class="button" type="submit" form="recordForm">บันทึกข้อมูล</button>
+  `;
+  return renderModalShell({
+    title: record ? `แก้ไข ${definition.shortTitle}` : `เพิ่มรายการ ${activityHeading}`,
+    subtitle: `${unitName} | ${fiscalYearLabel(fiscalYear)}`,
+    body,
+    footer,
+    size: "lg",
+  });
+}
+
+function renderActivity3RecordFormModal({ config, unitName, fiscalYear, definition, record, draft, relatedRecords = [] }) {
+  const source = draft || record || {};
+  const participants = source.participants?.length ? source.participants : [{ name: "" }];
+  const sourceMeta = {
+    ...extractActivity3SummaryMetaFromRows(source.rows || []),
+    ...(source.meta || {}),
+  };
+  const selectedMode = sourceMeta.recordMode || source.rows?.find((row) => row.__rowType)?.__rowType || "incident";
+  const incidentRows = (source.rows || []).filter((row) => (row.__rowType || "incident") === "incident");
+  const summaryRows = (source.rows || []).filter((row) => row.__rowType === "summary");
+  const activityHeading = `${definition.shortTitle} ${definition.title}`;
+  const context = { activity3IncidentOptions: buildActivity3IncidentOptions(relatedRecords, record?.recordId) };
+  const body = `
+    <form id="recordForm" class="modal-form" data-form-type="record" data-activity-id="${definition.id}" data-record-id="${escapeHtml(record?.recordId || "")}" data-created-at="${escapeHtml(record?.createdAt || "")}">
+      ${draft ? `<div class="draft-banner">กู้คืนข้อมูลฉบับร่างล่าสุดแล้ว สามารถแก้ไขต่อและบันทึกจริงได้ทันที</div>` : ""}
+      <div class="activity3-step" data-activity3-step="1">
+        <div class="search-panel">
+          <p class="section-eyebrow">ส่วนที่ 1</p>
+          <h4 class="section-title">${escapeHtml(activityHeading)}</h4>
+          <p class="hint">กรอกข้อมูลการทบทวนและเลือกรูปแบบการบันทึก จากนั้นกดถัดไป</p>
+        </div>
+        <div class="form-grid">
+          <label>
+            <span class="field-label">วันที่ทบทวน <span class="error-text">*</span></span>
+            <input class="input" type="date" name="reviewDate" value="${escapeHtml(toDateInput(source.reviewDate))}" required />
+          </label>
+          <label>
+            <span class="field-label">ผู้นำการทบทวน <span class="error-text">*</span></span>
+            <input class="input" type="text" name="reviewLeader" value="${escapeHtml(source.reviewLeader || "")}" required />
+          </label>
+          <label>
+            <span class="field-label">เลือกรูปแบบการบันทึก <span class="error-text">*</span></span>
+            <select class="select" name="${escapeHtml(definition.modeField.name)}" data-activity3-mode required>
+              ${definition.modeField.options
+                .map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === selectedMode ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
+                .join("")}
+            </select>
+          </label>
+        </div>
+
+        <div class="field-stack">
+          <div class="record-strip">
+            <div>
+              <h4 class="section-title">ผู้ร่วมทบทวน</h4>
+              <p class="muted">เพิ่ม/ลบแถวได้ไม่จำกัด</p>
+            </div>
+            <button class="button-ghost" type="button" data-action="add-participant-row">เพิ่มผู้ร่วมทบทวน</button>
+          </div>
+          <div class="participants-list" data-participants-list>
+            ${participants.map((participant, index) => renderParticipantRow(participant, index)).join("")}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="button" type="button" data-action="activity3-next-step">ถัดไป</button>
+        </div>
+      </div>
+
+      <div class="activity3-step hidden" data-activity3-step="2">
+        <div class="search-panel">
+          <p class="section-eyebrow">ส่วนที่ 2</p>
+          <h4 class="section-title">ข้อมูลตามรูปแบบการบันทึก</h4>
+        </div>
+
+        <div data-activity3-mode-panel="incident" class="${selectedMode === "incident" ? "" : "hidden"}">
+          <div class="field-stack">
+            <div class="record-strip">
+              <div>
+                <h4 class="section-title">บันทึกทบทวนเหตุการณ์สำคัญ</h4>
+                <p class="muted">แบบฟอร์มตามรายการเหตุการณ์สำคัญ</p>
+              </div>
+            </div>
+            <div class="dynamic-rows" data-dynamic-rows data-row-type="incident">
+              ${(incidentRows.length ? incidentRows : [createEmptyRow(definition, "incident")])
+                .map((row, index) => renderDynamicRow(definition, { ...row, __rowType: "incident" }, index, context))
+                .join("")}
+            </div>
+            <div class="modal-actions">
+              <button class="button-ghost" type="button" data-action="add-record-row">เพิ่มรายการย่อย</button>
+            </div>
+          </div>
+        </div>
+
+        <div data-activity3-mode-panel="summary" class="${selectedMode === "summary" ? "" : "hidden"}">
+          <div class="field-stack">
+            <div class="record-strip">
+              <div>
+                <h4 class="section-title">ส่วนที่ 2.1 สรุปการทบทวน</h4>
+                <p class="muted">ระบุจำนวนครั้งและสาเหตุ</p>
+              </div>
+            </div>
+            <div class="form-grid">
+              ${definition.summaryFields.map((field) => renderFormField(field, sourceMeta[field.name] ?? "")).join("")}
+            </div>
+          </div>
+          <div class="field-stack">
+            <div class="record-strip">
+              <div>
+                <h4 class="section-title">ส่วนที่ 2.2 วิเคราะห์กรณีสำคัญ</h4>
+                <p class="muted">เลือกจากรายการที่เคยบันทึกไว้ หรือกรอกข้อมูลเองตามฟอร์มเหตุการณ์สำคัญ</p>
+              </div>
+            </div>
+            <div class="dynamic-rows" data-dynamic-rows data-row-type="summary">
+              ${(summaryRows.length ? summaryRows : [createEmptyRow(definition, "summary")])
+                .map((row, index) => renderDynamicRow(definition, { ...row, __rowType: "summary" }, index, context))
+                .join("")}
+            </div>
+            <div class="modal-actions">
+              <button class="button-ghost" type="button" data-action="add-record-row">เพิ่มรายการย่อย</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-stack">
+          <label>
+            <span class="field-label">หมายเหตุ</span>
+            <textarea class="textarea" name="note">${escapeHtml(source.note || "")}</textarea>
+          </label>
+        </div>
+
+        <div class="field-stack">
+          <div class="record-strip">
+            <div>
+              <h4 class="section-title">แนบไฟล์เพิ่มเติม</h4>
+              <p class="muted">ไม่บังคับแนบ สูงสุด ${config.attachments.maxFiles} ไฟล์ รองรับ drag & drop</p>
+            </div>
+          </div>
+          <div class="dropzone" data-dropzone>
+            <div>
+              <strong>ลากไฟล์มาวางที่นี่</strong>
+              <div class="muted">หรือเลือกไฟล์ด้วยปุ่มด้านล่าง</div>
+              <div style="height: 12px"></div>
+              <label class="button-secondary">
+                เลือกไฟล์
+                <input class="hidden" type="file" data-file-input multiple />
+              </label>
+            </div>
+          </div>
+          <div class="file-preview-list" data-file-preview-list>
+            ${renderExistingAttachments(source.attachments || [])}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="button-secondary" type="button" data-action="activity3-prev-step">ย้อนกลับ</button>
         </div>
       </div>
     </form>
@@ -1210,10 +1376,10 @@ export function renderParticipantRow(participant = {}, index = 0) {
   `;
 }
 
-export function renderDynamicRow(definition, row = {}, index = 0) {
+export function renderDynamicRow(definition, row = {}, index = 0, context = {}) {
   const rowType = getSelectedRowType(definition, row);
   const rowFields = getRowFields(definition, rowType);
-  const rowTypeControl = definition.rowTypes?.length
+  const rowTypeControl = definition.rowTypes?.length && !definition.modeField
     ? `
       <label>
         <span class="field-label">รูปแบบการบันทึก</span>
@@ -1236,7 +1402,7 @@ export function renderDynamicRow(definition, row = {}, index = 0) {
       </div>
       <div class="form-grid" style="margin-top: 12px">
         ${rowTypeControl}
-        ${rowFields.map((field) => renderFormField(field, row[field.name] ?? "", `row__${index}__${field.name}`)).join("")}
+        ${rowFields.map((field) => renderFormField(field, row[field.name] ?? "", `row__${index}__${field.name}`, context)).join("")}
       </div>
     </div>
   `;
@@ -1265,8 +1431,8 @@ function renderRowPreview(definition, row = {}, index = 0) {
   `;
 }
 
-export function createEmptyRow(definition) {
-  const rowType = definition.rowTypes?.[0]?.key || "";
+export function createEmptyRow(definition, preferredRowType = "") {
+  const rowType = preferredRowType || definition.rowTypes?.[0]?.key || "";
   const baseRow = rowType ? { __rowType: rowType } : {};
   return getRowFields(definition, rowType).reduce((row, field) => {
     row[field.name] = "";
@@ -1275,7 +1441,7 @@ export function createEmptyRow(definition) {
 }
 
 function getSelectedRowType(definition, row = {}) {
-  return row.__rowType || definition.rowTypes?.[0]?.key || "";
+  return row.__rowType || definition.modeField?.options?.[0]?.value || definition.rowTypes?.[0]?.key || "";
 }
 
 function getRowTypeLabel(definition, rowType) {
@@ -1289,7 +1455,7 @@ function getRowFields(definition, rowType = "") {
   return definition.rowTypes.find((type) => type.key === rowType)?.fields || definition.rowTypes[0].fields || [];
 }
 
-function renderFormField(field, value = "", overrideName = "") {
+function renderFormField(field, value = "", overrideName = "", context = {}) {
   const name = overrideName || field.name;
   if (field.type === "textarea") {
     return `
@@ -1300,13 +1466,18 @@ function renderFormField(field, value = "", overrideName = "") {
     `;
   }
   if (field.type === "select") {
+    const options = getFieldOptions(field, context);
     return `
       <label>
         <span class="field-label">${escapeHtml(field.label)}${field.required ? ' <span class="error-text">*</span>' : ""}</span>
         <select class="select" name="${escapeHtml(name)}" ${field.required ? "required" : ""}>
           <option value="">เลือกข้อมูล</option>
-          ${(field.options || [])
-            .map((option) => `<option value="${escapeHtml(option)}" ${String(option) === String(value) ? "selected" : ""}>${escapeHtml(option)}</option>`)
+          ${options
+            .map((option) => {
+              const optionValue = typeof option === "object" ? option.value : option;
+              const optionLabel = typeof option === "object" ? option.label : option;
+              return `<option value="${escapeHtml(optionValue)}" ${String(optionValue) === String(value) ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`;
+            })
             .join("")}
         </select>
       </label>
@@ -1519,11 +1690,56 @@ function renderReportActivitySection(definition, records) {
   `;
 }
 
+function getFieldOptions(field, context = {}) {
+  if (field.optionsFrom === "activity3Incidents") {
+    return context.activity3IncidentOptions || [];
+  }
+  return field.options || [];
+}
+
+function extractActivity3SummaryMetaFromRows(rows = []) {
+  const summaryRow = rows.find((row) => row.__rowType === "summary") || {};
+  return ["referCount", "referCause", "transferRequestCount", "transferRequestCause", "refusalCount", "refusalCause"].reduce(
+    (meta, key) => {
+      if (summaryRow[key]) {
+        meta[key] = summaryRow[key];
+      }
+      return meta;
+    },
+    {},
+  );
+}
+
+function buildActivity3IncidentOptions(records = [], currentRecordId = "") {
+  const options = [];
+  (records || []).forEach((record) => {
+    if (record.recordId === currentRecordId) {
+      return;
+    }
+    (record.rows || []).forEach((row, rowIndex) => {
+      if ((row.__rowType || "incident") !== "incident") {
+        return;
+      }
+      const labelParts = [
+        formatThaiDate(row.eventDate || record.reviewDate),
+        row.transferType,
+        row.summary,
+      ].filter(Boolean);
+      options.push({
+        value: `${record.recordId || "record"}::${rowIndex}`,
+        label: labelParts.join(" | ") || `รายการเหตุการณ์สำคัญ ${options.length + 1}`,
+      });
+    });
+  });
+  return options;
+}
+
 function renderReportRecordDetails(definition, record) {
   const metaHtml = Object.entries(record.meta || {})
     .map(([key, value]) => {
-      const field = definition.summaryFields?.find((item) => item.name === key);
-      return value ? `<div><strong>${escapeHtml(field?.label || key)}:</strong> ${escapeHtml(value)}</div>` : "";
+      const field = definition.summaryFields?.find((item) => item.name === key)
+        || (definition.modeField?.name === key ? definition.modeField : null);
+      return value ? `<div><strong>${escapeHtml(field?.label || key)}:</strong> ${escapeHtml(formatReportFieldValue(field, value))}</div>` : "";
     })
     .join("");
   const rowsHtml = (record.rows || [])
@@ -1547,6 +1763,17 @@ function renderReportRecordDetails(definition, record) {
     })
     .join("");
   return `${metaHtml}${rowsHtml || "<div>-</div>"}`;
+}
+
+function formatReportFieldValue(field, value) {
+  if (!field?.options) {
+    return value;
+  }
+  const matchedOption = field.options.find((option) => {
+    const optionValue = typeof option === "object" ? option.value : option;
+    return String(optionValue) === String(value);
+  });
+  return typeof matchedOption === "object" ? matchedOption.label : matchedOption || value;
 }
 
 function renderReportActivity12Section(activity12, fiscalYear) {
