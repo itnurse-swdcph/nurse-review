@@ -124,13 +124,13 @@ class EnterpriseNurseApp {
 
     this.showLoader("กำลังโหลดแดชบอร์ด", `กำลังเตรียมข้อมูลของ ${route.unitName}`);
     try {
-      const dashboard = await this.getUnitDashboard(route.unitName, this.store.selectedFiscalYear);
-      let activityData = null;
-      if (route.name === "unit-activity") {
-        activityData = route.activityId === "12"
-          ? await this.getActivity12(route.unitName, this.store.selectedFiscalYear)
-          : await this.getActivityRecords(route.unitName, route.activityId, this.store.selectedFiscalYear);
-      }
+      const dashboardPromise = this.getUnitDashboard(route.unitName, this.store.selectedFiscalYear);
+      const activityPromise = route.name === "unit-activity"
+        ? route.activityId === "12"
+          ? this.getActivity12(route.unitName, this.store.selectedFiscalYear)
+          : this.getActivityRecords(route.unitName, route.activityId, this.store.selectedFiscalYear)
+        : Promise.resolve(null);
+      const [dashboard, activityData] = await Promise.all([dashboardPromise, activityPromise]);
       this.renderUnit(route, dashboard, activityData);
     } catch (error) {
       this.showToast(error.message, "error");
