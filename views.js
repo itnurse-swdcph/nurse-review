@@ -961,15 +961,15 @@ function renderActivity3RecordFormModal({ config, unitName, fiscalYear, definiti
         <div class="form-grid">
           <label>
             <span class="field-label">วันที่ทบทวน <span class="error-text">*</span></span>
-            <input class="input" type="date" name="reviewDate" value="${escapeHtml(toDateInput(source.reviewDate))}" required />
+            <input class="input" type="date" name="reviewDate" value="${escapeHtml(toDateInput(source.reviewDate))}" required data-required="true" />
           </label>
           <label>
             <span class="field-label">ผู้นำการทบทวน <span class="error-text">*</span></span>
-            <input class="input" type="text" name="reviewLeader" value="${escapeHtml(source.reviewLeader || "")}" required />
+            <input class="input" type="text" name="reviewLeader" value="${escapeHtml(source.reviewLeader || "")}" required data-required="true" />
           </label>
           <label>
             <span class="field-label">เลือกรูปแบบการบันทึก <span class="error-text">*</span></span>
-            <select class="select" name="${escapeHtml(definition.modeField.name)}" data-activity3-mode required>
+            <select class="select" name="${escapeHtml(definition.modeField.name)}" data-activity3-mode required data-required="true">
               ${definition.modeField.options
                 .map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === selectedMode ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
                 .join("")}
@@ -1461,7 +1461,7 @@ function renderFormField(field, value = "", overrideName = "", context = {}) {
     return `
       <label>
         <span class="field-label">${escapeHtml(field.label)}${field.required ? ' <span class="error-text">*</span>' : ""}</span>
-        <textarea class="textarea" name="${escapeHtml(name)}" ${field.required ? "required" : ""}>${escapeHtml(value)}</textarea>
+        <textarea class="textarea" name="${escapeHtml(name)}" ${field.required ? 'required data-required="true"' : ""}>${escapeHtml(value)}</textarea>
       </label>
     `;
   }
@@ -1470,7 +1470,7 @@ function renderFormField(field, value = "", overrideName = "", context = {}) {
     return `
       <label>
         <span class="field-label">${escapeHtml(field.label)}${field.required ? ' <span class="error-text">*</span>' : ""}</span>
-        <select class="select" name="${escapeHtml(name)}" ${field.required ? "required" : ""}>
+        <select class="select" name="${escapeHtml(name)}" ${field.required ? 'required data-required="true"' : ""}>
           <option value="">เลือกข้อมูล</option>
           ${options
             .map((option) => {
@@ -1486,7 +1486,7 @@ function renderFormField(field, value = "", overrideName = "", context = {}) {
   return `
     <label>
       <span class="field-label">${escapeHtml(field.label)}${field.required ? ' <span class="error-text">*</span>' : ""}</span>
-      <input class="input" type="${field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}" name="${escapeHtml(name)}" value="${escapeHtml(field.type === "date" ? toDateInput(value) : value)}" ${field.required ? "required" : ""} />
+      <input class="input" type="${field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}" name="${escapeHtml(name)}" value="${escapeHtml(field.type === "date" ? toDateInput(value) : value)}" ${field.required ? 'required data-required="true"' : ""} />
     </label>
   `;
 }
