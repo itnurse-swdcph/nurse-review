@@ -612,6 +612,9 @@ class EnterpriseNurseApp {
       relatedRecords: this.getCurrentActivityData()?.records || [],
     });
     this.refreshFilePreviewList();
+    if (activityId === "3") {
+      this.showActivity3Step(1);
+    }
   }
 
   appendParticipantRow() {
@@ -663,8 +666,29 @@ class EnterpriseNurseApp {
 
   showActivity3Step(step) {
     $all("[data-activity3-step]", modalRoot).forEach((element) => {
-      element.classList.toggle("hidden", element.dataset.activity3Step !== String(step));
+      const isHidden = element.dataset.activity3Step !== String(step);
+      element.classList.toggle("hidden", isHidden);
+      
+      // Toggle required attribute based on step visibility
+      $all("[data-required='true']", element).forEach((input) => {
+        if (isHidden) {
+          input.removeAttribute("required");
+        } else {
+          input.setAttribute("required", "");
+        }
+      });
     });
+
+    // Control submit button visibility in footer
+    const submitBtn = $("[type='submit']", modalRoot);
+    if (submitBtn) {
+      if (step === 1) {
+        submitBtn.style.display = "none";
+      } else {
+        submitBtn.style.display = "";
+      }
+    }
+
     if (step === 2) {
       this.updateActivity3Mode(this.getActivity3Mode());
     }
@@ -673,7 +697,17 @@ class EnterpriseNurseApp {
   updateActivity3Mode(mode) {
     const selectedMode = mode || "incident";
     $all("[data-activity3-mode-panel]", modalRoot).forEach((panel) => {
-      panel.classList.toggle("hidden", panel.dataset.activity3ModePanel !== selectedMode);
+      const isHidden = panel.dataset.activity3ModePanel !== selectedMode;
+      panel.classList.toggle("hidden", isHidden);
+
+      // Toggle required attribute based on panel visibility
+      $all("[data-required='true']", panel).forEach((input) => {
+        if (isHidden) {
+          input.removeAttribute("required");
+        } else {
+          input.setAttribute("required", "");
+        }
+      });
     });
     this.draftSaver();
   }
@@ -1035,8 +1069,13 @@ class EnterpriseNurseApp {
       clearCacheByPrefix(this.store, `activity12:${route.unitName}:`);
     }
     clearCacheByPrefix(this.store, "dashboard:");
-    const orgBootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear });
-    this.store.bootstrap = orgBootstrap;
+
+    const unitExists = route.unitName && this.store.bootstrap?.units?.some(u => u.unitName === route.unitName);
+    if (route.unitName && !unitExists) {
+      const orgBootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear });
+      this.store.bootstrap = orgBootstrap;
+    }
+
     await this.applyRoute(this.store.route);
   }
 
