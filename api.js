@@ -121,11 +121,13 @@ export class GasApiClient {
     let cleanup = () => {};
     const promise = new Promise((resolve, reject) => {
       const iframeName = `gasBridge_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const iframe = document.createElement("iframe");
       const form = document.createElement("form");
       const payloadInput = document.createElement("input");
       const actionInput = document.createElement("input");
       const transportInput = document.createElement("input");
+      const requestIdInput = document.createElement("input");
 
       let cleaned = false;
       cleanup = () => {
@@ -139,7 +141,7 @@ export class GasApiClient {
       };
 
       const handleMessage = (event) => {
-        if (event.source !== iframe.contentWindow) {
+        if (event.data?.requestId !== requestId) {
           return;
         }
         cleanup();
@@ -166,6 +168,10 @@ export class GasApiClient {
       transportInput.name = "transport";
       transportInput.value = "postMessage";
       form.appendChild(transportInput);
+
+      requestIdInput.name = "requestId";
+      requestIdInput.value = requestId;
+      form.appendChild(requestIdInput);
 
       payloadInput.name = "payload";
       payloadInput.value = JSON.stringify(payload);
