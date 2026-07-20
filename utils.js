@@ -187,3 +187,115 @@ export async function readFilesAsBase64(files) {
     ),
   );
 }
+
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB, before compression
+const IMAGE_MAX_DIMENSION = 1600; // px, longest side after resize
+const IMAGE_JPEG_QUALITY = 0.72;
+
+/**
+ * Validates a list of File objects for type/size before they are ever read
+ * into memory as base64. Returns { validFiles, errors } so the caller can
+ * surface per-file toast messages instead of silently failing later on the
+ * server (or worse, hanging the save request on a huge payload).
+ */
+export function validateFiles(files, { maxFiles = 5, maxSizeBytes = MAX_FILE_SIZE_BYTES } = {}) {
+  const incoming = Array.from(files || []);
+  const validFiles = [];
+  const errors = [];
+
+  incoming.slice(0, maxFiles).forEach((file) => {
+    const isAllowedType = !file.type || ALLOWED_MIME_TYPES.includes(file.type);
+    if (!isAllowedType) {
+      errors.push(`ไฟล์ "${file.name}" เป็นประเภทที่ไม่รองรับ`);
+      return;
+    }
+    if (file.size > maxSizeBytes) {
+      errors.push(`ไฟล์ "${file.name}" มีขนาดเกิน ${(maxSizeBytes / (1024 * 1024)).toFixed(0)}MB`);
+      return;
+    }
+    validFiles.push(file);
+  });
+
+  return { validFiles, errors };
+}
+
+/**
+ * Resizes/compresses image files on the client before upload so large
+ * camera photos (often 5-10MB) don't get shipped as bloated base64 JSON
+ * through the GAS request bridge, which is what was causing uploads to
+ * feel stuck. Non-image files (PDF, Word, Excel) pass through untouched.
+ */
+export async function compressImageIfNeeded(file) {
+  if (!file.type || !file.type.startsWith("image/") || file.type === "image/heic" || file.type === "image/heif") {
+    // Skip HEIC/HEIF and non-images: canvas re-encoding isn't reliable for HEIC in-browser.
+    return file;
+  }
+
+  const bitmap = await createImageBitmapSafe(file);
+  if (!bitmap) {
+    return file;
+  }
+
+  const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const targetWidth = Math.round(bitmap.width * scale);
+  const targetHeight = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", IMAGE_JPEG_QUALITY));
+  if (!blob || blob.size >= file.size) {
+    // Compression didn't help (e.g. already small); keep the original.
+    return file;
+  }
+
+  const newName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+  return new File([blob], newName, { type: "image/jpeg", lastModified: Date.now() });
+}
+
+async function createImageBitmapSafe(file) {
+  try {
+    if (window.createImageBitmap) {
+      return await window.createImageBitmap(file);
+    }
+  } catch (error) {
+    // Fall through to the <img> based fallback below.
+  }
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = dataUrl;
+    });
+    return img;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function compressImagesIfNeeded(files) {
+  return Promise.all(files.map((file) => compressImageIfNeeded(file)));
+}
