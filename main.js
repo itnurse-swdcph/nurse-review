@@ -5,12 +5,14 @@ import {
   $all,
   buildRouteHash,
   clone,
+  compressImagesIfNeeded,
   createFiscalMonthsPayload,
   debounce,
   escapeHtml,
   getFiscalYear,
   parseHash,
   readFilesAsBase64,
+  validateFiles,
   wait,
 } from "./utils.js";
 import { GasApiClient } from "./api.js";
@@ -475,14 +477,20 @@ class EnterpriseNurseApp {
       return;
     }
     if (action === "confirm-delete-record") {
+      if (actionTarget.disabled) return;
+      actionTarget.disabled = true;
       this.confirmDeleteRecord(actionTarget.dataset.recordId);
       return;
     }
     if (action === "confirm-delete-indicator") {
+      if (actionTarget.disabled) return;
+      actionTarget.disabled = true;
       this.confirmDeleteIndicator(actionTarget.dataset.indicatorId);
       return;
     }
     if (action === "confirm-delete-indicator-issue") {
+      if (actionTarget.disabled) return;
+      actionTarget.disabled = true;
       this.confirmDeleteIndicatorIssue(actionTarget.dataset.issueId);
       return;
     }
@@ -497,6 +505,22 @@ class EnterpriseNurseApp {
     if (!form) {
       return;
     }
+    if (this.isSubmitting) {
+      return;
+    }
+    const submitButton = form.querySelector('[type="submit"], button[form="' + form.id + '"]')
+      || document.querySelector('button[form="' + form.id + '"]');
+    this.isSubmitting = true;
+    if (submitButton) submitButton.disabled = true;
+    try {
+      await this.dispatchModalSubmit(form);
+    } finally {
+      this.isSubmitting = false;
+      if (submitButton) submitButton.disabled = false;
+    }
+  }
+
+  async dispatchModalSubmit(form) {
     const formType = form.dataset.formType;
     if (formType === "record") {
       await this.submitRecordForm(form);
@@ -745,8 +769,12 @@ class EnterpriseNurseApp {
       this.showToast(`แนบไฟล์ได้สูงสุด ${maxFiles} ไฟล์`, "error");
       return;
     }
-    const limitedFiles = incomingFiles.slice(0, remaining);
-    this.modalFiles.push(...limitedFiles);
+    const { validFiles, errors } = validateFiles(incomingFiles.slice(0, remaining));
+    errors.forEach((message) => this.showToast(message, "error"));
+    if (!validFiles.length) {
+      return;
+    }
+    this.modalFiles.push(...validFiles);
     this.refreshFilePreviewList();
     this.draftSaver();
   }
@@ -858,8 +886,9 @@ class EnterpriseNurseApp {
       if (!payload.rows.length && !this.canSaveWithoutRows(payload)) {
         throw new Error("กรุณาเพิ่มรายการย่อยอย่างน้อย 1 รายการ");
       }
-      this.showLoader("กำลังบันทึกข้อมูล", "กำลังอัปโหลดไฟล์และบันทึกลงฐานข้อมูล");
-      const newAttachments = await readFilesAsBase64(this.modalFiles);
+      this.showLoader("กำลังบันทึกข้อมูล", "กำลังบีบอัดและอัปโหลดไฟล์แนบ");
+      const compressedFiles = await compressImagesIfNeeded(this.modalFiles);
+      const newAttachments = await readFilesAsBase64(compressedFiles);
       await this.api.saveActivityRecord({ ...payload, newAttachments });
       this.clearDraftForModal(true);
       this.closeModal();
@@ -876,12 +905,34 @@ class EnterpriseNurseApp {
     }
   }
   async confirmDeleteRecord(recordId) {
+    if (!recordId) {
+      this.showToast("ไม่พบรหัสรายการที่จะลบ", "error");
+      return;
+    }
     try {
-    this.showLoader("กำลังลบข้อมูล", "กรุณารอสักครู่");
+      this.showLoader("กำลังลบข้อมูล", "กรุณารอสักครู่");
       await this.api.deleteActivityRecord({ recordId });
       this.closeModal();
       await this.refreshAfterMutation();
       this.showToast("ลบรายการเรียบร้อยแล้ว");
+    } catch (error) {
+      this.showToast(error.message, "error");
+    } finally {
+      this.hideLoader();
+    }
+  }
+
+  async confirmDeleteIndicator(indicatorId) {
+    if (!indicatorId) {
+      this.showToast("ไม่พบรหัสเครื่องชี้วัดที่จะลบ", "error");
+      return;
+    }
+    try {
+      this.showLoader("กำลังลบเครื่องชี้วัด", "กรุณารอสักครู่");
+      await this.api.deleteIndicatorCatalog({ indicatorId });
+      this.closeModal();
+      await this.refreshAfterMutation();
+      this.showToast("ลบเครื่องชี้วัดเรียบร้อยแล้ว");
     } catch (error) {
       this.showToast(error.message, "error");
     } finally {
@@ -1252,6 +1303,3 @@ class EnterpriseNurseApp {
 
 const app = new EnterpriseNurseApp(config);
 document.addEventListener("DOMContentLoaded", () => app.init());
-
-
-
