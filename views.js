@@ -1302,6 +1302,10 @@ export function renderIndicatorIssueModal({ issue, indicators }) {
     size: "md",
   });
 }
+function toKebabCase(key) {
+  return String(key).replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
+
 export function renderConfirmModal({ title, message, confirmAction, payload = {} }) {
   const body = `<div class="panel"><p>${escapeHtml(message)}</p></div>`;
   return renderModalShell({
@@ -1310,7 +1314,7 @@ export function renderConfirmModal({ title, message, confirmAction, payload = {}
     footer: `
       <button class="button-secondary" type="button" data-action="close-modal">ยกเลิก</button>
       <button class="button-danger" type="button" data-action="${confirmAction}" ${Object.entries(payload)
-        .map(([key, value]) => `data-${key}="${escapeHtml(String(value))}"`)
+        .map(([key, value]) => `data-${toKebabCase(key)}="${escapeHtml(String(value))}"`)
         .join(" ")}>ยืนยัน</button>
     `,
     size: "sm",
@@ -2256,5 +2260,3 @@ export function renderActivityPickerModalV2({ unitName, activityCounts = {} }) {
     </div>
   `;
 }
-
-
