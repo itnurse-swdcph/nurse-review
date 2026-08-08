@@ -96,7 +96,7 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
     recentRecords: [],
     unitSummaries: [],
   };
-  const unitRows = organization.unitSummaries || [];
+  const categoryUnits = bootstrap.categoryReport?.units || [];
   return renderAppShell({
     config,
     route: { name: "home" },
@@ -179,49 +179,15 @@ export function renderHomePage({ config, bootstrap, fiscalYear }) {
           <section class="table-shell" style="margin-top: 18px">
             <div class="table-shell__head">
               <div>
-                <p class="section-eyebrow">Units</p>
-                <h3 class="table-title">หน่วยงานในระบบ</h3>
-                <p class="table-meta">เลือกหน่วยงานเพื่อเข้าสู่ dashboard และเริ่มบันทึกกิจกรรม</p>
+                <p class="section-eyebrow">Category Breakdown</p>
+                <h3 class="table-title">ตารางรายงานการบันทึกทบทวนตามหมวดหมู่</h3>
+                <p class="table-meta">จำนวนครั้งที่แต่ละหน่วยงานบันทึกในแต่ละกิจกรรม (นับจำนวนครั้ง ไม่แสดงรายละเอียด)</p>
               </div>
               <div class="table-actions">
                 <button class="button-secondary" data-action="open-unit-picker">เข้าสู่ระบบหน่วยงาน</button>
               </div>
             </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>หน่วยงาน</th>
-                    <th>จำนวนการบันทึก</th>
-                    <th>ตัวชี้วัด</th>
-                    <th>ประเด็นติดตาม</th>
-                    <th>อัปเดตล่าสุด</th>
-                    <th>ดำเนินการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${unitRows
-                    .map(
-                      (item) => `
-                        <tr>
-                          <td>
-                            <strong>${escapeHtml(item.unitName)}</strong>
-                            <div class="muted">${escapeHtml(item.groupName || "หน่วยงานพยาบาล")}</div>
-                          </td>
-                          <td>${formatNumber(item.totalRecords)}</td>
-                          <td>${formatNumber(item.totalIndicators)}</td>
-                          <td>${formatNumber(item.openIssues)}</td>
-                          <td>${escapeHtml(item.lastReviewDate ? formatThaiDate(item.lastReviewDate) : "-")}</td>
-                          <td>
-                            <button class="button-ghost" data-action="open-unit-dashboard" data-unit="${escapeHtml(item.unitName)}">เปิดแดชบอร์ด</button>
-                          </td>
-                        </tr>
-                      `,
-                    )
-                    .join("") || `<tr><td colspan="6">${renderEmptyState("ยังไม่พบหน่วยงานในฐานข้อมูล")}</td></tr>`}
-                </tbody>
-              </table>
-            </div>
+            ${renderCategoryMatrixTable(categoryUnits)}
           </section>
         </div>
       </section>
@@ -1321,6 +1287,186 @@ export function renderConfirmModal({ title, message, confirmAction, payload = {}
   });
 }
 
+export function renderCategoryMatrixTable(units = []) {
+  const activityColumns = ACTIVITY_DEFINITIONS.concat([
+    { id: "12", shortTitle: "กิจกรรมที่ 12" },
+  ]);
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>หน่วยงาน</th>
+            ${activityColumns.map((activity) => `<th>${escapeHtml(activity.shortTitle)}</th>`).join("")}
+            <th>รวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${units.length
+            ? units
+                .map(
+                  (unit) => `
+                    <tr>
+                      <td>
+                        <strong>${escapeHtml(unit.unitName)}</strong>
+                        ${unit.groupName ? `<div class="muted">${escapeHtml(unit.groupName)}</div>` : ""}
+                      </td>
+                      ${activityColumns
+                        .map((activity) => `<td>${formatNumber(unit.counts?.[activity.id] || 0)}</td>`)
+                        .join("")}
+                      <td><strong>${formatNumber(unit.total || 0)}</strong></td>
+                    </tr>
+                  `,
+                )
+                .join("")
+            : `<tr><td colspan="${activityColumns.length + 2}">${renderEmptyState("ยังไม่พบข้อมูล")}</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+export function renderAdminLoginModal(errorMessage = "") {
+  const body = `
+    <div class="modal-stack">
+      <p class="hint">กรอกรหัสผ่านแอดมินเพื่อเข้าสู่หน้าตรวจสอบสรุปผลรายงาน</p>
+      <div class="modal-form">
+        <label>
+          <span class="field-label">รหัสแอดมิน</span>
+          <input id="adminAccessCodeInput" class="input" type="password" inputmode="numeric" maxlength="20" placeholder="กรอกรหัสผ่าน" autocomplete="off" />
+        </label>
+        <p id="adminLoginError" class="error-text ${errorMessage ? "" : "hidden"}">${escapeHtml(errorMessage || "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")}</p>
+        <div class="modal-actions">
+          <button class="button button--hero" type="button" data-action="submit-admin-login">เข้าสู่ระบบ</button>
+          <button class="button-ghost" type="button" data-action="close-modal">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+  `;
+  return renderModalShell({
+    title: "เข้าสู่ระบบแอดมิน",
+    subtitle: "สำหรับตรวจสอบสรุปผลรายงาน",
+    body,
+    size: "sm",
+  });
+}
+
+export function renderAdminReportModal({ fiscalYear, availableFiscalYears = [], activeTab = "category", category, detailed }) {
+  const tabs = [
+    { key: "category", label: "รายงานตามหมวดหมู่" },
+    { key: "detailed", label: "รายงานสรุปแบบละเอียด" },
+  ];
+  const body = `
+    <div class="modal-stack">
+      <div class="admin-report__toolbar">
+        <label class="toolbar-select">
+          <span class="toolbar-select__label">ปีงบประมาณ</span>
+          <select class="select select--toolbar" data-action="change-admin-fiscal-year">
+            ${availableFiscalYears
+              .map((year) => `<option value="${year}" ${Number(year) === Number(fiscalYear) ? "selected" : ""}>${fiscalYearLabel(year)}</option>`)
+              .join("")}
+          </select>
+        </label>
+        <div class="toolbar-group">
+          ${tabs
+            .map(
+              (tab) => `
+                <button class="${activeTab === tab.key ? "button" : "button-secondary"}" type="button" data-action="admin-report-tab" data-tab="${tab.key}">${tab.label}</button>
+              `,
+            )
+            .join("")}
+        </div>
+      </div>
+      ${activeTab === "detailed" ? renderAdminDetailedReportBody(detailed) : renderAdminCategoryReportBody(category)}
+    </div>
+  `;
+  return renderModalShell({
+    title: "รายงานสำหรับแอดมิน",
+    subtitle: "ตรวจสอบสรุปผลรายงานการทบทวนทั้งองค์กร",
+    body,
+    footer: `
+      <button class="button-secondary" type="button" data-action="close-modal">ปิด</button>
+      <button class="button" type="button" data-action="${activeTab === "detailed" ? "export-admin-detailed-excel" : "export-admin-category-excel"}">Export Excel</button>
+    `,
+    size: "lg",
+  });
+}
+
+function renderAdminCategoryReportBody(category) {
+  if (!category) {
+    return renderEmptyState("กำลังโหลดข้อมูล...");
+  }
+  return `
+    <section class="table-shell" style="margin-top: 12px">
+      <div class="table-shell__head">
+        <div>
+          <p class="section-eyebrow">Category Report</p>
+          <h3 class="table-title">รายงานการบันทึกทบทวนตามหมวดหมู่</h3>
+          <p class="table-meta">จำนวนครั้งที่แต่ละหน่วยงานบันทึกในแต่ละกิจกรรม (นับจำนวนครั้ง ไม่แสดงรายละเอียด)</p>
+        </div>
+      </div>
+      ${renderCategoryMatrixTable(category.units || [])}
+    </section>
+  `;
+}
+
+function renderAdminDetailedReportBody(detailed) {
+  if (!detailed) {
+    return renderEmptyState("กำลังโหลดข้อมูล...");
+  }
+  const units = detailed.units || [];
+  return `
+    <section class="table-shell" style="margin-top: 12px">
+      <div class="table-shell__head">
+        <div>
+          <p class="section-eyebrow">Detailed Report</p>
+          <h3 class="table-title">รายงานสรุปการทบทวน 12 กิจกรรม แยกรายหน่วยงาน</h3>
+          <p class="table-meta">แสดงจำนวนครั้ง วันที่ทบทวนล่าสุด และผู้นำทบทวนล่าสุดของแต่ละกิจกรรม</p>
+        </div>
+      </div>
+      ${units.length
+        ? units
+            .map(
+              (unit) => `
+                <div class="admin-report__unit-block">
+                  <h4 class="admin-report__unit-title">${escapeHtml(unit.unitName)}${unit.groupName ? ` <span class="muted">(${escapeHtml(unit.groupName)})</span>` : ""}</h4>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>กิจกรรม</th>
+                          <th>จำนวนครั้ง</th>
+                          <th>วันที่ทบทวนล่าสุด</th>
+                          <th>ผู้นำทบทวนล่าสุด</th>
+                          <th>หมายเหตุ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${(unit.activities || [])
+                          .map(
+                            (activity) => `
+                              <tr>
+                                <td>${escapeHtml(activity.activityTitle)}</td>
+                                <td>${formatNumber(activity.totalRecords)}</td>
+                                <td>${activity.lastReviewDate ? escapeHtml(formatThaiDate(activity.lastReviewDate)) : "-"}</td>
+                                <td>${escapeHtml(activity.lastReviewLeader || "-")}</td>
+                                <td class="pre-wrap">${escapeHtml(activity.lastNote || "-")}</td>
+                              </tr>
+                            `,
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              `,
+            )
+            .join("")
+        : renderEmptyState("ยังไม่พบข้อมูล")}
+    </section>
+  `;
+}
+
 export function renderReportModal({ bundle, scopeLabel }) {
   const body = `
     <div class="report-wrap">
@@ -2086,6 +2232,7 @@ function renderTopbar({ config, bootstrap, route, activeUnit, fiscalYear }) {
             <button class="button-ghost button-ghost--toolbar" data-action="${route.name === "home" ? "open-org-report" : "go-home"}">
               ${route.name === "home" ? "รายงานภาพรวม" : "กลับหน้าแรก"}
             </button>
+            <button class="button-ghost button-ghost--toolbar" data-action="open-admin-login">แอดมิน</button>
           </div>
         </div>
       </div>
