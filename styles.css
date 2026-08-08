@@ -1200,6 +1200,48 @@ tbody tr:hover {
   color: var(--navy);
 }
 
+.matrix-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  text-align: center;
+  font-size: 12.5px;
+}
+
+.matrix-table th {
+  background: var(--surface-muted);
+}
+
+.matrix-table .matrix-table__unit,
+.matrix-table th:first-child {
+  width: 22%;
+  text-align: left;
+  padding-left: 10px;
+}
+
+.matrix-table th:last-child,
+.matrix-table td:last-child {
+  width: 6%;
+}
+
+@media print {
+  .matrix-table {
+    font-size: 10.5px;
+  }
+
+  .matrix-table th,
+  .matrix-table td {
+    padding: 4px 2px;
+    border-color: #000;
+  }
+}
+
 .report-row-detail + .report-row-detail {
   margin-top: 6px;
   padding-top: 6px;
@@ -1434,5 +1476,9 @@ tbody tr:hover {
 
   .admin-report__toolbar {
     display: none !important;
+  }
+
+  .table-wrap {
+    overflow: visible;
   }
 }
