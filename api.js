@@ -44,6 +44,14 @@ export class GasApiClient {
     return this.get("getReportBundle", { unitName, fiscalYear });
   }
 
+  async getAdminCategoryReport(fiscalYear) {
+    return this.get("getAdminCategoryReport", { fiscalYear });
+  }
+
+  async getAdminDetailedReport(fiscalYear) {
+    return this.get("getAdminDetailedReport", { fiscalYear });
+  }
+
   async saveActivityRecord(payload) {
     return this.post("saveActivityRecord", payload);
   }
