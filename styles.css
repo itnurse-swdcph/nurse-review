@@ -1129,9 +1129,9 @@ tbody tr:hover {
 }
 
 .report-sheet {
-  width: 210mm;
-  min-height: 297mm;
-  padding: 14mm 12mm;
+  width: 297mm;
+  min-height: 210mm;
+  padding: 12mm 14mm;
   margin: 0 auto 18px;
   background: #fff;
   color: #000;
@@ -1392,6 +1392,11 @@ tbody tr:hover {
 }
 
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
   body {
     background: #fff;
   }
@@ -1425,5 +1430,9 @@ tbody tr:hover {
 
   .report-sheet:last-child {
     page-break-after: auto;
+  }
+
+  .admin-report__toolbar {
+    display: none !important;
   }
 }
