@@ -1292,12 +1292,15 @@ export function renderCategoryMatrixTable(units = []) {
   ]);
   return `
     <div class="table-wrap">
-      <table>
+      <table class="matrix-table">
         <thead>
           <tr>
-            <th>หน่วยงาน</th>
-            ${activityColumns.map((activity) => `<th>${escapeHtml(activity.shortTitle)}</th>`).join("")}
-            <th>รวม</th>
+            <th rowspan="2">หน่วยงาน</th>
+            <th colspan="${activityColumns.length}">กิจกรรมที่</th>
+            <th rowspan="2">รวม</th>
+          </tr>
+          <tr>
+            ${activityColumns.map((activity) => `<th>${escapeHtml(activity.id)}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -1306,7 +1309,7 @@ export function renderCategoryMatrixTable(units = []) {
                 .map(
                   (unit) => `
                     <tr>
-                      <td>
+                      <td class="matrix-table__unit">
                         <strong>${escapeHtml(unit.unitName)}</strong>
                         ${unit.groupName ? `<div class="muted">${escapeHtml(unit.groupName)}</div>` : ""}
                       </td>
@@ -1374,6 +1377,7 @@ export function renderAdminReportModal({ fiscalYear, availableFiscalYears = [], 
               `,
             )
             .join("")}
+          <button class="button-secondary" type="button" data-action="open-org-report">รายงานภาพรวม</button>
         </div>
       </div>
       ${activeTab === "detailed" ? renderAdminDetailedReportBody(detailed) : renderAdminCategoryReportBody(category)}
@@ -1385,7 +1389,6 @@ export function renderAdminReportModal({ fiscalYear, availableFiscalYears = [], 
     body,
     footer: `
       <button class="button-secondary" type="button" data-action="close-modal">ปิด</button>
-      <button class="button-secondary" type="button" data-action="open-org-report">รายงานภาพรวม</button>
       <button class="button-secondary" type="button" data-action="print-report">พิมพ์เอกสาร</button>
       <button class="button" type="button" data-action="${activeTab === "detailed" ? "export-admin-detailed-excel" : "export-admin-category-excel"}">Export Excel</button>
     `,
@@ -1810,6 +1813,13 @@ function renderReportActivitySection(definition, records) {
     <section style="margin-top: 12px">
       <strong>${escapeHtml(definition.shortTitle)}: ${escapeHtml(definition.title)}</strong>
       <table class="report-table" style="margin-top: 6px">
+        <colgroup>
+          <col style="width: 10%" />
+          <col style="width: 17%" />
+          <col style="width: 17%" />
+          <col style="width: 40%" />
+          <col style="width: 16%" />
+        </colgroup>
         <thead>
           <tr>
             <th>${escapeHtml(reviewDateLabel)}</th>
