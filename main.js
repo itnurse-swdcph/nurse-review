@@ -1,4 +1,4 @@
-import { ACTIVITY_12_MONTH_KEYS, ACTIVITY_MAP, AUTOSAVE_DEBOUNCE_MS } from "./constants.js";
+import { ACTIVITY_12_MONTH_KEYS, ACTIVITY_MAP, ADMIN_ACCESS_CODE, AUTOSAVE_DEBOUNCE_MS } from "./constants.js";
 import { clearCacheByPrefix, createStore, getCache, setCache } from "./store.js";
 import {
   $,
@@ -9,6 +9,7 @@ import {
   createFiscalMonthsPayload,
   debounce,
   escapeHtml,
+  formatThaiDate,
   getFiscalYear,
   parseHash,
   readFilesAsBase64,
@@ -19,6 +20,8 @@ import { GasApiClient } from "./api.js";
 import {
   createEmptyRow,
   renderAppShell,
+  renderAdminLoginModal,
+  renderAdminReportModal,
   renderConfirmModal,
   renderDynamicRow,
   renderFilePreviews,
@@ -86,6 +89,7 @@ class EnterpriseNurseApp {
     this.showLoader("กำลังโหลดระบบ", "กำลังเชื่อมต่อข้อมูล");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear || getFiscalYear() });
+      bootstrap.categoryReport = await this.api.getAdminCategoryReport(bootstrap.currentFiscalYear);
       this.store.bootstrap = bootstrap;
       this.store.selectedFiscalYear = bootstrap.currentFiscalYear || getFiscalYear();
       const route = parseHash();
@@ -342,6 +346,10 @@ class EnterpriseNurseApp {
       this.openReport(target.dataset.unit, `รายงานหน่วยงาน ${target.dataset.unit}`);
       return;
     }
+    if (action === "open-admin-login") {
+      this.openAdminLogin();
+      return;
+    }
   }
 
   handleAppChange(event) {
@@ -375,9 +383,11 @@ class EnterpriseNurseApp {
     this.showLoader("กำลังเปลี่ยนปีงบประมาณ", "กำลังอัปเดตแดชบอร์ดภาพรวม");
     try {
       const bootstrap = await this.api.bootstrap({ fiscalYear: this.store.selectedFiscalYear });
+      const categoryReport = await this.api.getAdminCategoryReport(this.store.selectedFiscalYear);
       this.store.bootstrap = {
         ...bootstrap,
         currentFiscalYear: this.store.selectedFiscalYear,
+        categoryReport,
       };
       this.renderHome();
     } catch (error) {
@@ -497,6 +507,22 @@ class EnterpriseNurseApp {
     if (action === "print-report") {
       window.print();
     }
+    if (action === "submit-admin-login") {
+      this.submitAdminLogin();
+      return;
+    }
+    if (action === "admin-report-tab") {
+      this.switchAdminReportTab(actionTarget.dataset.tab);
+      return;
+    }
+    if (action === "export-admin-category-excel") {
+      this.exportAdminCategoryExcel();
+      return;
+    }
+    if (action === "export-admin-detailed-excel") {
+      this.exportAdminDetailedExcel();
+      return;
+    }
   }
 
   async handleModalSubmit(event) {
@@ -541,6 +567,10 @@ class EnterpriseNurseApp {
 
   handleModalChange(event) {
     const target = event.target;
+    if (target.dataset.action === "change-admin-fiscal-year") {
+      this.changeAdminFiscalYear(Number(target.value));
+      return;
+    }
     if (target.dataset.fileInput !== undefined) {
       this.appendFiles(target.files);
       return;
@@ -1234,6 +1264,125 @@ class EnterpriseNurseApp {
     } finally {
       this.hideLoader();
     }
+  }
+
+  openAdminLogin() {
+    this.store.admin.isAuthenticated = false;
+    modalRoot.innerHTML = renderAdminLoginModal();
+    window.setTimeout(() => $("#adminAccessCodeInput", modalRoot)?.focus(), 50);
+  }
+
+  async submitAdminLogin() {
+    const input = $("#adminAccessCodeInput", modalRoot);
+    const code = String(input?.value || "").trim();
+    if (code !== ADMIN_ACCESS_CODE) {
+      const errorEl = $("#adminLoginError", modalRoot);
+      if (errorEl) {
+        errorEl.textContent = "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+        errorEl.classList.remove("hidden");
+      }
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      return;
+    }
+    this.store.admin.isAuthenticated = true;
+    this.store.admin.activeTab = "category";
+    this.store.admin.fiscalYear = this.store.selectedFiscalYear;
+    await this.loadAdminReports(this.store.admin.fiscalYear);
+  }
+
+  async loadAdminReports(fiscalYear) {
+    this.showLoader("กำลังโหลดรายงานแอดมิน", "กำลังประมวลผลข้อมูลสรุปทั้งองค์กร");
+    try {
+      const [category, detailed] = await Promise.all([
+        this.api.getAdminCategoryReport(fiscalYear),
+        this.api.getAdminDetailedReport(fiscalYear),
+      ]);
+      this.store.admin.fiscalYear = fiscalYear;
+      this.store.admin.category = category;
+      this.store.admin.detailed = detailed;
+      this.refreshAdminReportModal();
+    } catch (error) {
+      this.showToast(error.message, "error");
+    } finally {
+      this.hideLoader();
+    }
+  }
+
+  refreshAdminReportModal() {
+    modalRoot.innerHTML = renderAdminReportModal({
+      fiscalYear: this.store.admin.fiscalYear,
+      availableFiscalYears: this.store.bootstrap?.availableFiscalYears || [],
+      activeTab: this.store.admin.activeTab,
+      category: this.store.admin.category,
+      detailed: this.store.admin.detailed,
+    });
+  }
+
+  switchAdminReportTab(tab) {
+    if (!tab || !this.store.admin.isAuthenticated) {
+      return;
+    }
+    this.store.admin.activeTab = tab;
+    this.refreshAdminReportModal();
+  }
+
+  async changeAdminFiscalYear(fiscalYear) {
+    if (!fiscalYear || !this.store.admin.isAuthenticated) {
+      return;
+    }
+    await this.loadAdminReports(fiscalYear);
+  }
+
+  exportAdminCategoryExcel() {
+    const data = this.store.admin.category;
+    if (!data || !window.XLSX) {
+      this.showToast("ไม่พบข้อมูลสำหรับ Export", "error");
+      return;
+    }
+    const activityColumns = Object.keys(data.activities || {});
+    const header = ["หน่วยงาน", "กลุ่มงาน", ...activityColumns.map((id) => `กิจกรรมที่ ${id}`), "รวม"];
+    const rows = (data.units || []).map((unit) => [
+      unit.unitName,
+      unit.groupName || "",
+      ...activityColumns.map((id) => Number(unit.counts?.[id] || 0)),
+      Number(unit.total || 0),
+    ]);
+    const sheet = window.XLSX.utils.aoa_to_sheet([header, ...rows]);
+    const workbook = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(workbook, sheet, "รายงานตามหมวดหมู่");
+    window.XLSX.writeFile(workbook, `รายงานตามหมวดหมู่_ปี${data.fiscalYear}.xlsx`);
+  }
+
+  exportAdminDetailedExcel() {
+    const data = this.store.admin.detailed;
+    if (!data || !window.XLSX) {
+      this.showToast("ไม่พบข้อมูลสำหรับ Export", "error");
+      return;
+    }
+    const header = ["หน่วยงาน", "กลุ่มงาน", "กิจกรรม", "จำนวนครั้ง", "วันที่ทบทวนล่าสุด", "ผู้นำทบทวนล่าสุด", "หมายเหตุ"];
+    const rows = [];
+    (data.units || []).forEach((unit) => {
+      (unit.activities || []).forEach((activity) => {
+        rows.push([
+          unit.unitName,
+          unit.groupName || "",
+          activity.activityTitle,
+          Number(activity.totalRecords || 0),
+          activity.lastReviewDate ? formatThaiDate(activity.lastReviewDate) : "",
+          activity.lastReviewLeader || "",
+          activity.lastNote || "",
+        ]);
+      });
+    });
+    const sheet = window.XLSX.utils.aoa_to_sheet([header, ...rows]);
+    // Preserve user-entered line breaks in the "หมายเหตุ" column when opened in Excel.
+    sheet["!cols"] = [{ wch: 22 }, { wch: 18 }, { wch: 40 }, { wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 40 }];
+    const workbook = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(workbook, sheet, "รายงานสรุปแบบละเอียด");
+    window.XLSX.writeFile(workbook, `รายงานสรุปแบบละเอียด_ปี${data.fiscalYear}.xlsx`);
   }
 
   closeModal() {
