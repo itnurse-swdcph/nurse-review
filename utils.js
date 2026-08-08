@@ -19,13 +19,81 @@ export function formatNumber(value) {
   return Number(value || 0).toLocaleString("th-TH");
 }
 
-export function formatThaiDate(value) {
-  if (!value) {
-    return "-";
+// Some environments (notably the native Android/Chrome <input type="date">
+// picker when the device locale is Thai) return the year the user sees
+// on-screen -- which is the Buddhist Era year -- inside what should be a
+// plain Gregorian ISO string. If that value is later formatted with
+// Intl.DateTimeFormat("th-TH", ...), which itself adds +543 to produce the
+// Buddhist year for display, the result gets shifted twice (e.g. a real
+// 2568 becomes ~3111/3112). The helpers below detect and correct a
+// Buddhist-looking year no matter how the date was originally typed/entered,
+// so every "พ.ศ." shown in the app is always accurate.
+const BUDDHIST_YEAR_THRESHOLD = 2200; // any year above this is assumed to already be a B.E. year
+
+function normalizeDateComponents(year, month, day, rest = "") {
+  let normalizedYear = Number(year);
+  if (normalizedYear > BUDDHIST_YEAR_THRESHOLD) {
+    normalizedYear -= 543;
   }
-  const date = new Date(value);
+  return `${String(normalizedYear).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}${rest}`;
+}
+
+export function normalizeGregorianDateString(value) {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return "";
+    }
+    const year = value.getFullYear() > BUDDHIST_YEAR_THRESHOLD ? value.getFullYear() - 543 : value.getFullYear();
+    return `${String(year).padStart(4, "0")}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return "";
+  }
+
+  // ISO-style "YYYY-MM-DD" (optionally with a time/offset suffix), as
+  // produced by <input type="date"> and by the backend.
+  const isoMatch = raw.match(/^(\d{3,4})-(\d{2})-(\d{2})(.*)$/);
+  if (isoMatch) {
+    const [, year, month, day, rest] = isoMatch;
+    return normalizeDateComponents(year, month, day, rest);
+  }
+
+  // "DD/MM/YYYY" or "D/M/YYYY" style strings some users may type or paste in.
+  const dmyMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    return normalizeDateComponents(year, month, day);
+  }
+
+  return raw;
+}
+
+function toSafeDate(value) {
+  const normalized = normalizeGregorianDateString(value);
+  if (!normalized) {
+    return null;
+  }
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return null;
+  }
+  // Defensive second pass: if Date() still produced an absurd Buddhist-looking
+  // year (e.g. from a format the regexes above didn't catch), correct it too.
+  if (date.getFullYear() > BUDDHIST_YEAR_THRESHOLD) {
+    date.setFullYear(date.getFullYear() - 543);
+  }
+  return date;
+}
+
+export function formatThaiDate(value) {
+  const date = toSafeDate(value);
+  if (!date) {
+    return value ? String(value) : "-";
   }
   return new Intl.DateTimeFormat("th-TH", {
     day: "2-digit",
@@ -35,12 +103,9 @@ export function formatThaiDate(value) {
 }
 
 export function formatThaiDateTime(value) {
-  if (!value) {
-    return "-";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
+  const date = toSafeDate(value);
+  if (!date) {
+    return value ? String(value) : "-";
   }
   return new Intl.DateTimeFormat("th-TH", {
     dateStyle: "medium",
@@ -86,11 +151,8 @@ export function slugify(value) {
 }
 
 export function toDateInput(value) {
-  if (!value) {
-    return "";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const date = toSafeDate(value);
+  if (!date) {
     return "";
   }
   return [
