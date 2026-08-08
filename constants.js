@@ -2,6 +2,7 @@ export const PAGE_SIZE = 10;
 export const CACHE_TTL_MS = 2 * 60 * 1000;
 export const AUTOSAVE_DEBOUNCE_MS = 450;
 export const MAX_RECENT_ITEMS = 8;
+export const ADMIN_ACCESS_CODE = "11450";
 
 export const FY_MONTHS = [
   { key: "oct", label: "ต.ค." },
