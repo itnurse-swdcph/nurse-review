@@ -1386,6 +1386,7 @@ export function renderAdminReportModal({ fiscalYear, availableFiscalYears = [], 
     body,
     footer: `
       <button class="button-secondary" type="button" data-action="close-modal">ปิด</button>
+      <button class="button-secondary" type="button" data-action="print-report">พิมพ์เอกสาร</button>
       <button class="button" type="button" data-action="${activeTab === "detailed" ? "export-admin-detailed-excel" : "export-admin-category-excel"}">Export Excel</button>
     `,
     size: "lg",
@@ -1826,7 +1827,7 @@ function renderReportActivitySection(definition, records) {
                     <tr>
                       <td>${escapeHtml(formatThaiDate(record.reviewDate))}</td>
                       <td>${escapeHtml(record.reviewLeader || "-")}</td>
-                      <td>${escapeHtml((record.participants || []).map((item) => item.name).join(", ") || "-")}</td>
+                      <td>${escapeHtml((record.participants || []).map((item) => item.name).filter(Boolean).join("\n") || "-")}</td>
                       <td>${renderReportRecordDetails(definition, record)}</td>
                       <td>${escapeHtml(record.note || "-")}</td>
                     </tr>
