@@ -219,7 +219,6 @@ function renderHomePageLegacy({ config, bootstrap, fiscalYear }) {
                 <p class="hero__subtitle">บันทึกและสรุปผลการทบทวนรายหน่วยงาน</p>
                 <div class="hero__actions">
                   <button class="button" data-action="open-unit-picker">ทำการบันทึก</button>
-                  <button class="button-secondary" data-action="open-org-report">พิมพ์รายงานภาพรวม</button>
                 </div>
               </div>
               <div>
@@ -1386,6 +1385,7 @@ export function renderAdminReportModal({ fiscalYear, availableFiscalYears = [], 
     body,
     footer: `
       <button class="button-secondary" type="button" data-action="close-modal">ปิด</button>
+      <button class="button-secondary" type="button" data-action="open-org-report">รายงานภาพรวม</button>
       <button class="button-secondary" type="button" data-action="print-report">พิมพ์เอกสาร</button>
       <button class="button" type="button" data-action="${activeTab === "detailed" ? "export-admin-detailed-excel" : "export-admin-category-excel"}">Export Excel</button>
     `,
@@ -2230,9 +2230,7 @@ function renderTopbar({ config, bootstrap, route, activeUnit, fiscalYear }) {
             ${primaryAction}
             ${activeUnit ? `<button class="button-ghost button-ghost--toolbar" data-action="open-unit-picker">สลับหน่วยงาน</button>` : ""}
             ${activeUnit ? `<button class="button-ghost button-ghost--toolbar" data-action="open-unit-report" data-unit="${escapeHtml(activeUnit)}">รายงานหน่วยงาน</button>` : ""}
-            <button class="button-ghost button-ghost--toolbar" data-action="${route.name === "home" ? "open-org-report" : "go-home"}">
-              ${route.name === "home" ? "รายงานภาพรวม" : "กลับหน้าแรก"}
-            </button>
+            ${route.name !== "home" ? `<button class="button-ghost button-ghost--toolbar" data-action="go-home">กลับหน้าแรก</button>` : ""}
             <button class="button-ghost button-ghost--toolbar" data-action="open-admin-login">แอดมิน</button>
           </div>
         </div>
