@@ -16,6 +16,13 @@ export function createStore() {
       activity12Filter: "all",
     },
     drafts: new Map(),
+    admin: {
+      isAuthenticated: false,
+      activeTab: "category",
+      fiscalYear: null,
+      category: null,
+      detailed: null,
+    },
   };
 }
 
