@@ -36,7 +36,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  font-family: "IBM Plex Sans Thai", "Sarabun", sans-serif;
+  font-family: "Sarabun", "IBM Plex Sans Thai", sans-serif;
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(66, 163, 216, 0.18), transparent 26rem),
@@ -1167,6 +1167,37 @@ tbody tr:hover {
   border: 1px solid #000;
   padding: 4px 5px;
   vertical-align: top;
+  /* Preserve line breaks exactly as the user typed them (notes, problem/action
+     text, dynamic row fields, etc). Without this, saved "\n" characters were
+     collapsed by normal HTML whitespace rules when reports were generated. */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-report__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-report__unit-block + .admin-report__unit-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.admin-report__unit-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
 }
 
 .report-row-detail + .report-row-detail {
