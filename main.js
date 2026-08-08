@@ -11,6 +11,7 @@ import {
   escapeHtml,
   formatThaiDate,
   getFiscalYear,
+  normalizeGregorianDateString,
   parseHash,
   readFilesAsBase64,
   validateFiles,
@@ -507,6 +508,10 @@ class EnterpriseNurseApp {
     if (action === "print-report") {
       window.print();
     }
+    if (action === "open-org-report") {
+      this.openReport("__all__", "รายงานภาพรวมทั้งองค์กร");
+      return;
+    }
     if (action === "submit-admin-login") {
       this.submitAdminLogin();
       return;
@@ -847,7 +852,8 @@ class EnterpriseNurseApp {
       const rowType = this.getRowTypeFromElement(definition, rowElement);
       return this.getRowFields(definition, rowType).reduce((row, field) => {
         const input = $(`[name$="__${field.name}"]`, rowElement);
-        row[field.name] = input?.value?.trim?.() ?? String(input?.value || "").trim();
+        const rawValue = input?.value?.trim?.() ?? String(input?.value || "").trim();
+        row[field.name] = field.type === "date" ? normalizeGregorianDateString(rawValue) : rawValue;
         return row;
       }, definition.rowTypes?.length ? { __rowType: rowType } : {});
     });
@@ -867,7 +873,7 @@ class EnterpriseNurseApp {
       activityId: definition.id,
       activityLabel: definition.title,
       fiscalYear: this.store.selectedFiscalYear,
-      reviewDate: String(formData.get("reviewDate") || "").trim(),
+      reviewDate: normalizeGregorianDateString(String(formData.get("reviewDate") || "").trim()),
       reviewLeader: String(formData.get("reviewLeader") || "").trim(),
       participants,
       meta,
